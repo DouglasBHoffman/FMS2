@@ -15,7 +15,7 @@ decimal
 
 \ *** BEGIN FMS2 CODE ***
 
-false constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
+true constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
 
 0 value dflt-cur
 0 value self
@@ -196,11 +196,25 @@ fmsCheck? [if]
 
 0 value (dict)-xt \ will contain xt for (dict)
 
+: ?execute-method 
+  state @
+  if
+    ?isSel
+    if
+    \ early bind to following message
+    ( addr sel-type )
+      ( obj table-offset ) over @ rot postpone literal ( obj table-offset ^dspatch ) >xt 
+      postpone literal postpone ex-meth
+    else \ no message so just compile addr of object
+      postpone literal
+    then
+  then ;
+
 : (obj) \ Compile time ( "spaces<name>" -- ) \ name of the new dictionary object
    create  immediate
    \ Run time: ( -- ^obj )
    \   or execute: ^obj <message:>
-   does> ; 
+   does> ?execute-method ; 
 
 : build ( class | #elems class -- )
   ^class
@@ -297,7 +311,6 @@ include /Users/doughoffman/Desktop/FMS2/farray.f
 include /Users/doughoffman/Desktop/FMS2/file.f
 include /Users/doughoffman/Desktop/FMS2/arrays.f
 include /Users/doughoffman/Desktop/FMS2/objectArray.f
-\ include /Users/doughoffman/VfxOsxPro/Examples/quotations.fth
 include /Users/doughoffman/Desktop/FMS2/hash-table.f
 include /Users/doughoffman/Desktop/FMS2/hash-table-m.f
 [then] 
