@@ -24,8 +24,9 @@
 :class hash-table-m <super hash-table
 
 \ called within :insert method in superclass 
- :m :search ( node hash -- idx hash false )
-      swap drop idx @ swap false ;m
+ :m :search ( node idx hash -- idx hash false )
+    rot drop false ;m 
+
  :m :next ( -- val true | false )
     last-node @ dup
     if
@@ -53,16 +54,25 @@ s" Ghosts "   >string s" Alan"  r :insert
 s" Buffy "    >string s" Glory" r :insert 
 s" Zombies "  >string s" Alan"  r :insert
 s" Vampires " >string s" Jonah" r :insert
+ 
+R is redefined ok
+ 
 
 
+s" Jonah" r :@ . .  -1 12630160 ok
 
-s" Jonah" r :@ . .  -1 16738256 ok
-16738256 :. Whales  ok
-r :next . -1 ok \ 1 
-:. Spiders  ok
-r :next . -1 ok \ 1 
-:. Vampires  ok
-r :next . 0 ok
+12630160 :. \ Whales  ok Whales  ok
+
+r :next . \  -1 ok \ 1  -1 ok \ 1 
+
+:. \ Spiders  ok Spiders  ok
+
+r :next . \ -1 ok \ 1  -1 ok \ 1 
+
+:. \ Vampires  ok Vampires  ok
+
+r :next . \ 0 ok 0 ok
+
 
 
 [then]
