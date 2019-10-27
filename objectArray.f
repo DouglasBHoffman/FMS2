@@ -1,6 +1,6 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Oct 2019 Douglas B. Hoffman
+\ Oct 25 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
 
@@ -56,18 +56,28 @@ variable lstack-depth
 ;class
 
 : >flt ( -- obj ) ( F: r -- ) heap> flt ;
- 
+
+
+
+\ remove the leading and trailing "'"s from string-objects created
+\ using the o{ ... } syntax
+: :dequote ( str-obj -- ) >r
+   s" '" s" " r> :replall ;
+
 
 :class obj-array <super array
+
  :m :. cr  ." { "
        begin
          self :each
        while
-         :. 
+         dup is-a string
+         if [char] ' emit :. [char] ' emit space
+         else :. 
+         then
        repeat ." } " ;m 
 ;class
-
-: >oArray ( -- arr ) heap> obj-array ;
+ 
 
 : o{ ( -- list ) \ list allocated in the heap
   heap> obj-array locals| list |
@@ -118,8 +128,8 @@ variable lstack-depth
 	             else >string >r 
 	                  r@ :first [char] ' =
 	                  if r@ :last [char] ' =
-	                     if r> list :add
-	                     else 32 r@ :ch+ [char] ' parse r@ :add [char] ' r@ :ch+ r> list :add
+	                     if r> dup :dequote list :add
+	                     else 32 r@ :ch+ [char] ' parse r@ :add  r@ :dequote r> list :add
 	                     then
 	                   else cr r> :. list cleanup-list
 	                        true abort" invalid token in {..} list"
@@ -134,10 +144,3 @@ variable lstack-depth
                         then 
   list ;
  
-
-\ remove the leading and trailing "'"s from string-objects created
-\ using the o{ ... } syntax
-: :dequote ( str-obj -- ) >r
-   s" '" s" " r> :replall ;
-
-

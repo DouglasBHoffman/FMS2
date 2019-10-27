@@ -1,6 +1,6 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Oct 2019 Douglas B. Hoffman
+\ Oct 25 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
 [undefined] ptr [if] .( file ptr.f required ) [then]
@@ -139,10 +139,20 @@ fmsCheck? [if]
 
 : >array ( -- obj ) heap> array ;
 
-  : :apply ( xt array -- <varies> ) \ apply xt to each item in the array
+: :apply ( xt obj -- <varies> ) \ apply xt to each item in the array
                              \ items in array do not change
      locals| obj xt |
-     obj :size 0 ?do i obj :at xt execute loop ;
+     obj :uneach
+     begin
+      obj :each
+     while
+      xt execute
+     repeat
+     ;
+
+
+
+
 
 \ apply xt to each item in array
 \ count the number of times xt returns non-zero
@@ -152,15 +162,24 @@ fmsCheck? [if]
               loop cnt ;
 
 \ apply xt2 only if xt1 returns true
-  : :applyIf ( xt1 xt2 array -- <varies> ) \ apply xt2 to each item in the array
+
+: :applyIf ( xt1 xt2 obj -- <varies> ) \ apply xt2 to each item in the array
                              \ that responds true to xt1
                              \ items in array do not change
      locals| obj xt2 xt1 |
-     obj :size 0 ?do i obj :at dup xt1 execute
-                     if xt2 execute
-                     else drop
-                     then
-                 loop ;
+     obj :uneach
+     begin
+      obj :each
+     while
+      dup xt1 execute
+      if xt2 execute
+      else drop
+      then
+     repeat
+     ;
+
+
+
 
    : :map ( xt array -- ) \ apply xt to each object in the array
                              \ items in array are changed
@@ -173,10 +192,16 @@ fmsCheck? [if]
  
  \ BUT, note the problem of having two copies of the same object. Use care.
  \ Only <free or <freeAll the original array, just use free on 1array'
-   : :filter ( xt array -- 1array' )
-   heap> array locals| array' obj xt |
-   obj :size 0 ?do i obj :at dup xt execute if array' :add else drop then
-               loop array' ;
+
+: :filter ( xt array -- 1array' )
+   0 locals| obj' obj xt |
+   obj >class (heap) to obj'
+   obj :uneach
+   begin
+    obj :each
+   while
+    xt execute obj' :add
+   repeat obj' ;
 
 
 \ for an array filled with heap objects
@@ -191,3 +216,52 @@ fmsCheck? [if]
    if recurse else <free then
   repeat obj <free ;
 
+
+
+0 [if] 
+
+: >dstring dup dict> string ;
+12 array month  ok
+
+
+MONTH is redefined ok
+10 month :add ok
+20 month :add ok
+30 month :add ok
+ ok
+ ok
+: months ( idx -- str-obj )
+  month :at ;
+ ok
+   
+0 months .  10 ok
+1 months . 20 ok
+2 months . 30 ok
+
+
+ 
+s" January" >dstring month :add
+s" February" >dstring month :add
+s" March" >dstring month :add
+ ok
+ ok
+
+: months ( idx -- str-obj )
+  month :at ;
+   
+  
+0 month :at :. January ok
+1 month :at :. February ok
+
+
+>array value month
+s" January" >dstring month :add
+s" February" >dstring month :add
+s" March" >dstring month :add
+ 
+: months ( idx -- str-obj )
+  month :at ;
+ ok
+0 months :. January ok
+
+[then]

@@ -1,6 +1,6 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Oct 24 2019 Douglas B. Hoffman
+\ Oct 25 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
 
@@ -43,23 +43,27 @@
  cell bytes key-addr
  cell bytes key-len
  cell bytes last-node \ required for subclass hash-table-m
+ cell bytes current-idx \ for :each
  
  :m :init heap> array table !
     0 #nodes !
     100 load !
-    3 0 do 0 table @ :add loop \ initialize with 3 cells 
+    3 0 do 0 table @ :add loop \ initialize with room for 3 nodes 
  ;m
 
 : hash-iv  ( addr len -- hash ) \ from Dick Pountain JFAR Vol3 Number 3 p68
   32 min 0 swap 0 do over i + c@ i 1+ * + loop swap drop ;
 
+
+ : (do-search) ( node -- flag ) dup :key@ :@ key-addr @ key-len @ compare 0= ;
+ 
 \ idx to the table location is returned if false
  : do-search \ { -- node idx hash true | idx hash false }
     0 0 locals| hsh idx |
     key-addr @ key-len @ hash-iv dup to hsh table @ :size mod abs ( idx) dup to idx  table @ :at
     ( node-obj)
     begin
-      dup if dup :key@ :@ key-addr @ key-len @ compare 0= if ( node-obj ) idx hsh true exit then then
+      dup if (do-search) if ( node-obj ) idx hsh true exit then then
       dup
     while
       :next
@@ -174,6 +178,11 @@
           transfer then
        ;m 
 
+\ :add is for supporting some HOFs
+:m :add ( node -- )
+   dup >r
+   :val@ r> :key@ :@ self :insert ;m
+
 : (free) \ { node }
    >r
    r@ :next ?dup if ( next-node) recurse
@@ -210,6 +219,90 @@ fmsCheck? [if]
     ;m
 [then]
 
+
+ 
+ :m :uneach 0  current-idx ! 0 last-node ! ;m
+
+ :m :each ( -- node true | false)
+ 
+     last-node @ dup
+     if :next dup if dup last-node ! true exit
+                  else drop  1 current-idx +!
+                  then
+     else drop
+     then
+    begin
+     current-idx @ dup  table @ :size <
+    while 
+      table @ :at dup 0<>
+      if dup last-node ! true exit
+      else drop 1 current-idx +!
+      then
+    repeat drop false self :uneach ;m
+   
+
 ;class
+
+: >hash-table ( -- obj ) heap> hash-table ;
  
+0 [if]
+
+
+hash-table t ok
+10 s" fish" t :insert ok
+20 s" dog" t :insert ok
+30 s" carp" t :insert ok
+40 s" cat" t :insert ok
+50 s" frog" t :insert ok
  
+T is redefined ok
+ 
+T is redefined ok
+
+t :d   
+0 0 
+1 12264000 
+2 178324864 
+3 0 
+4 11629696 
+5 12592736 
+6 0 
+#nodes 5 
+table size 7 
+
+0 
+
+hash 631 
+key dog 
+val 20 
+next 0 
+
+
+hash 1073 
+key fish 
+val 10 
+next 0 
+
+0 
+
+hash 641 
+key cat 
+val 40 
+next 11728544 
+
+hash 1075 
+key frog 
+val 50 
+next 0 
+
+
+hash 1083 
+key carp 
+val 30 
+next 0 
+
+0 ok
+
+
+
+

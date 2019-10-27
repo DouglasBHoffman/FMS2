@@ -111,7 +111,7 @@ fmsCheck? [if]
     if dup super :init self :! 0 maxsize !
     else dup maxsize ! align here swap allot data ! self :! 
     then 0 current-idx ! self :reset ;m
- :m :. get type space ;m
+ :m :. get type ;m
 
 fmsCheck? [if]
 : ?idx ( idx -- idx )

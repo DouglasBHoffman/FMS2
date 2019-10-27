@@ -1,6 +1,6 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Oct 2019 Douglas B. Hoffman
+\ Oct 25 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
 [undefined] array [if] .( file array.f required ) abort [then]
@@ -13,11 +13,12 @@
 
  :m :init \ ( -- ) or if static: ( max#elems --)
     ?alloc dup  alloc? c!
-    if 0 super :init  
+    if 0 dup allocate throw data ! len !  
     else ( max#elems ) dup len ! floats align here swap allot data !
     then
     0 #elems !
      1 floats  elemSize !
+     self :uneach
      ;m
 
  :m :@elem ( addr -- elem ) f@ ;m

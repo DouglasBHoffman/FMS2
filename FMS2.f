@@ -1,6 +1,6 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Oct 19 2019 Douglas B. Hoffman
+\ Oct 25 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
 
@@ -81,6 +81,14 @@ message-wid +order \ make it the first wordlist to be searched, always
   then >in ! false ;
 
 
+: not-understood? ( flag -- ) abort" message not understood" ;
+
+fmsCheck? [if] 
+: >xt ( table-offset ^dispatch -- xt )
+  2dup @ > not-understood? + @ dup 0= not-understood? ;
+[else]
+: >xt ( table-offset ^dispatch -- xt ) + @ ;
+[then]
 
 
 
@@ -113,7 +121,7 @@ message-wid +order \ make it the first wordlist to be searched, always
           ?issel
           if \ early bind to following message
           ( addr )
-            ( table-offset ) r@ cell+ @ @ ( ^dspatch ) + @ ( xt )
+            ( table-offset ) r@ cell+ @ @ ( ^dspatch ) >xt ( xt )
             postpone literal postpone ex-meth
           then r> drop ; 
 
@@ -156,14 +164,6 @@ message-wid +order \ make it the first wordlist to be searched, always
 \ **** end embedded instance variable primitives ****
 
 
-: not-understood? ( flag -- ) abort" message not understood" ;
-
-fmsCheck? [if] 
-: >xt ( table-offset ^dispatch -- xt )
-  2dup @ > not-understood? + @ dup 0= not-understood? ;
-[else]
-: >xt ( table-offset ^dispatch -- xt ) + @ ;
-[then]
 
 \ For a dispatch table selector, the selector-ID is a table offset.
 \ The offset is stored in the body of the selector definition.
@@ -302,6 +302,10 @@ here swap - . .( bytes used ) \ 6902 vs 11570 for FMS-SI on VFX 40% smaller code
 [then]
 
 
+[defined] VFXForth [if]
+include /Users/doughoffman/VfxOsxPro/Examples/quotations.fth
+[then]
+
 -1 [if] \ Recommended class library file includes.
         \ Actually, none of these files are required to use FMS.
 include /Users/doughoffman/Desktop/FMS2/ptr.f
@@ -313,6 +317,7 @@ include /Users/doughoffman/Desktop/FMS2/arrays.f
 include /Users/doughoffman/Desktop/FMS2/objectArray.f
 include /Users/doughoffman/Desktop/FMS2/hash-table.f
 include /Users/doughoffman/Desktop/FMS2/hash-table-m.f
+\ include /Users/doughoffman/Desktop/FMS2/FMS2Tester.f  \ should work, not fully comprehensive yet
 [then] 
 
 

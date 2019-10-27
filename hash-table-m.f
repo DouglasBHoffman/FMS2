@@ -1,6 +1,6 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Oct 24 2019 Douglas B. Hoffman
+\ Oct 25 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
 
@@ -32,7 +32,7 @@
       begin
        ( node ) :next dup
       while
-        dup :key@ :@ key-addr @ key-len @ compare 0=
+        (do-search)
              if dup last-node ! :val@ true exit then
       repeat 
     then ;m
