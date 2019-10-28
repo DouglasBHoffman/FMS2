@@ -1,6 +1,6 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Oct 16 2019 Douglas B. Hoffman
+\ Oct 28 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
 
@@ -104,3 +104,44 @@ cr .( Floating Point is required) abort
  
 [then]
 
+
+\ for creating a list of space delimited strings
+: ${ ( -- array )  
+  heap> array
+	BEGIN
+	 ( obj )
+	   refilling-parse-name 2dup S" }" compare 
+	WHILE
+	 ( obj addr len )
+      >string over :add
+	REPEAT ( obj addr len ) 2drop ;
+
+\ from Hans Bezemer via comp.lang.forth June-26-2013
+\ thread: Simple Sort - the smallest sorting routine?
+\ ref:  http://de.wikipedia.org/wiki/Simplesort
+: simplesort ( ^elem0 n xt -- ) locals| xt |
+  cells over + dup rot
+  ?do
+    dup i CELL+ ?do i @ j @ xt execute
+    if i @ j @ i ! j ! then 1 cells +loop
+  1 cells +loop
+  drop ;
+
+: sort$s ( xt arr -- ) locals| arr xt |
+  0 arr :^elem arr :size xt simplesort ;  
+
+0 [if]
+
+${ now is the time for all good men } value s1
+
+\ or could also use:
+\ o{ 'now' 'is' 'the' 'time' 'for' 'all' 'good' 'men' } value s1
+\ s1 :. \ { 'now' 'is' 'the' 'time' 'for' 'all' 'good' 'men' }
+
+[: :. space ;] s1 :apply \ => now is the time for all good men
+
+[: swap :@ rot :@ compare 1 < ;] s1 sort$s
+
+[: :. space ;] s1 :apply \ => all for good is men now the time
+
+[then]
