@@ -1,7 +1,8 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Oct 2019 Douglas B. Hoffman
+\ Nov 29 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
+\ corrected ?idx
 
 [undefined] ptr [if] .( file ptr.f required ) abort [then]
 
@@ -115,7 +116,7 @@ fmsCheck? [if]
 
 fmsCheck? [if]
 : ?idx ( idx -- idx )
-     dup len @ > abort" string index out of range" ; 
+     dup len @ 1- > abort" string index out of range" ; 
 [else] : ?idx ;
 [then]
 \ :at and :to indexes refer to the entire string
