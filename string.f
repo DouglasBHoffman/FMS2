@@ -1,8 +1,8 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Nov 29 2019 Douglas B. Hoffman
+\ Dec 9 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
-\ corrected ?idx
+\ corrected check
 
 [undefined] ptr [if] .( file ptr.f required ) abort [then]
 
@@ -61,7 +61,9 @@ defer lower
 \ *** end Boyer-Moore search engine
 
 fmsCheck? [if]
-: check ( n --) maxsize @ > abort" string max-size exceeded" ;
+
+\ Last Revision:  9 Dec 2019  06:39:19  dbh added dup 0= if 2drop exit then
+: check ( n --) maxsize @ dup 0= if 2drop exit then > abort" string max-size exceeded" ;
 [else] : check drop ;
 [then]
  :m :resize ( newsize -- )

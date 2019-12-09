@@ -1,10 +1,10 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Oct 2019 Douglas B. Hoffman
+\ Dec 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
 
-[undefined] string [if] .( microString.f required ) abort [then]
+[undefined] string [if] .( string.f required ) abort [then]
 
 :class file   ( c-a u -- ) \ file name
   cell bytes id
