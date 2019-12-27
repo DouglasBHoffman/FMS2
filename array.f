@@ -1,7 +1,10 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Oct 25 2019 Douglas B. Hoffman
+\ Dec 27 2019 Douglas B. Hoffman
 \ dhoffman888@gmail.com
+
+\ Last Revision: 21 Dec 2019  04:56:21  dbh
+\ defined HOF :apply prior to class array (required)
 
 [undefined] ptr [if] .( file ptr.f required ) [then]
 
@@ -11,11 +14,25 @@
 : cell- ( addr -- addr-cell ) -cell + ; [then]
 [then]
 
-\ very common messages should defined first
+\ very common messages should be defined first
 make-selector :!
 make-selector :@
 make-selector :.
 make-selector :at
+make-selector :uneach
+make-selector :each
+
+\ HOF
+: :apply ( xt obj -- <varies> ) \ apply xt to each item in the array
+                             \ items in array do not change
+     locals| obj xt |
+     obj :uneach
+     begin
+      obj :each
+     while
+      xt execute
+     repeat
+     ;
 
 \ replaces ordered-col when used with >dict
 :class array <super ptr \ ( max#elems -- ) dict>  or  ( -- ) heap>
@@ -49,6 +66,13 @@ fmsCheck? [if]
            r@  ^elem ( dest)  #elems @ r> -  elemSize @ * ( len) move
     else drop
     then #elems @ 1 - (resize) ;m
+
+\ :clear can only be used if each array item is an allocated object
+ :m :clear \ delete each object and reset the array size to zero
+    ['] <free self :apply
+    0 #elems !
+    0 current-idx !
+    alloc? c@ if 0 super :resize then ;m
 
  :m :remove ( idx -- elem )
     dup self :at
@@ -139,20 +163,6 @@ fmsCheck? [if]
 
 : >array ( -- obj ) heap> array ;
 
-: :apply ( xt obj -- <varies> ) \ apply xt to each item in the array
-                             \ items in array do not change
-     locals| obj xt |
-     obj :uneach
-     begin
-      obj :each
-     while
-      xt execute
-     repeat
-     ;
-
-
-
-
 
 \ apply xt to each item in array
 \ count the number of times xt returns non-zero
@@ -217,51 +227,3 @@ fmsCheck? [if]
   repeat obj <free ;
 
 
-
-0 [if] 
-
-: >dstring dup dict> string ;
-12 array month  ok
-
-
-MONTH is redefined ok
-10 month :add ok
-20 month :add ok
-30 month :add ok
- ok
- ok
-: months ( idx -- str-obj )
-  month :at ;
- ok
-   
-0 months .  10 ok
-1 months . 20 ok
-2 months . 30 ok
-
-
- 
-s" January" >dstring month :add
-s" February" >dstring month :add
-s" March" >dstring month :add
- ok
- ok
-
-: months ( idx -- str-obj )
-  month :at ;
-   
-  
-0 month :at :. January ok
-1 month :at :. February ok
-
-
->array value month
-s" January" >dstring month :add
-s" February" >dstring month :add
-s" March" >dstring month :add
- 
-: months ( idx -- str-obj )
-  month :at ;
- ok
-0 months :. January ok
-
-[then]
