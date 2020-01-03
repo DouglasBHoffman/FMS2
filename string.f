@@ -1,8 +1,9 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Dec 9 2019 Douglas B. Hoffman
+\ Jan 3 2020 Douglas B. Hoffman
 \ dhoffman888@gmail.com
-\ corrected check
+\ corrected check 12/9/2019
+\ changed to strict 0-127 ascii chars 1/3/2020
 
 [undefined] ptr [if] .( file ptr.f required ) abort [then]
 
@@ -20,12 +21,12 @@
 
 : set-deltaTable  \ { patternA patLen deltaTable | r -- }
   1 locals| r deltaTable patLen |
-  deltaTable 256 patLen fill
+  deltaTable 128 patLen fill
   ( patternA) patLen over + swap ?do 
         patLen r -   i c@   deltaTable + c!  r 1+ to r loop ;
 \      patLen r -    = number to store in deltaTable
 \      i c@ = index into deltaTable
-: noop ;
+[undefined] noop [if] : noop ; [then]
 
 \ text is text to be searched for the pattern substring.
 \ If the search is successful n is the offset into the text where
@@ -135,11 +136,11 @@ fmsCheck? [if]
  : lowerCase? ( char -- flag ) \ flag is true if char is lower case
   [CHAR] a [CHAR] z 1+  within ;
 
-: >upper ( char -- char') \ return upper-case character of c
+: >upper ( char -- char') \ return upper-case character of char
   dup lowerCase? if 32 xor then ;
-: >lower ( char -- char') 32 or ; \ return lower-case character of c
+: >lower ( char -- char') 32 or ; \ return lower-case character of char
 
-: to-lower ( adr len -- ) \ convert entire string to lowercase
+: to-lower ( adr len -- ) \ convert entire string to lowercase in-place
   over \ addr cnt addr
   + swap  \ cnt+addr addr
   ?do i c@ >lower i c!
@@ -183,24 +184,28 @@ fmsCheck? [if]
      self :selectAll
      self :=subCI ;f
 
+: (search)1 ( addr len -- flag ) dup len @ end @ - > ;
+: str-obj ( -- str-obj) heap> string 128 allocate throw ;
+: (search)2 ( -- len) data @ end @ + ( start-addr) len @ end @ - ( len) ;
+: (search)3 end @ + dup start ! over :size + end ! true ;
 
  :m :search ( addr len -- true | false ) \ case sensitive  
     \ first do rationality check
     \ return false if len to find is greater than remainder
-   dup len @ end @ - ( len rem ) > if 2drop false exit then
-   heap> string 256 allocate throw >r \ str
-   dup :@ data @  end @ + ( start-addr) len @  end @ - ( len) r@ false fast-search
-   if end @ + dup start ! over :size + end !  true
+   (search)1 if 2drop false exit then
+   str-obj >r \ str
+   dup :@ (search)2 r@ false fast-search
+   if (search)3
    else false
    then swap <free r> free throw ;m
 
 :f :searchCI ( addr len -- true | false ) \ case insensitive
     \ first do rationality check
     \ return false if len to find is greater than remainder
-   dup len @ end @ - ( len rem ) > if 2drop false exitf then
-   heap> string 256 allocate throw >r \ str  
-   dup :@ 2dup to-lower data @ end @ + ( start-addr) len @ end @ - ( len) r@ true fast-search
-   if end @ + dup start ! over :size + end !  true
+   (search)1 if 2drop false exitf then
+   str-obj >r \ str  
+   dup :@ 2dup to-lower (search)2 r@ true fast-search
+   if (search)3
    else false
    then swap <free r> free throw ;f
 
