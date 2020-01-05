@@ -1,6 +1,6 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Dec 27 2019 Douglas B. Hoffman
+\ Jan 2020 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
 \ Last Revision: 21 Dec 2019  04:56:21  dbh
@@ -91,9 +91,11 @@ fmsCheck? [if]
      ;m
 
  :m :@elem ( addr -- elem ) @ ;m
+
  :m :each ( -- elem true | false)
      current-idx @ dup  #elems @ <
-    if 1  current-idx +!  ^elem self :@elem true else drop false self :uneach then ;m
+    if 1  current-idx +!  ^elem self :@elem true else drop false then ;m
+
  :m :size ( -- n)  #elems @ ;m
  :m :to ( elem idx -- )  ^elem  ! ;m
  :m :at ( idx -- elem )  ^elem  @ ;m

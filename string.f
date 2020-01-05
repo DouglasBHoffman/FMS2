@@ -1,6 +1,6 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Jan 3 2020 Douglas B. Hoffman
+\ Jan 2020 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 \ corrected check 12/9/2019
 \ changed to strict 0-127 ascii chars 1/3/2020
@@ -127,11 +127,17 @@ fmsCheck? [if]
      ?idx data @ + c@ ;m
  :m :to ( char idx -- )
      ?idx data @ + c! ;m 
+
+ :m :remove ( idx -- char) \ removes char at idx and shrinks string size by one
+                           \ removed char is returned
+    dup >r self :at
+    r> dup start ! 1+ end ! self :delete ;m
  
  :m :uneach 0  current-idx ! ;m
+
  :m :each ( -- char true | false)
      current-idx @ dup  len @ <
-    if 1 current-idx +! self :at true else drop false 0 current-idx ! then ;m
+    if 1 current-idx +! self :at true else drop false then ;m
 
  : lowerCase? ( char -- flag ) \ flag is true if char is lower case
   [CHAR] a [CHAR] z 1+  within ;
