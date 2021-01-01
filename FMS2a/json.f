@@ -11,7 +11,7 @@
 \ str? (are we parsing a string?), num?(are we parsing a number?).
 
 \ Each character of the JSON text is an index into the 128 cell
-\ jump table that contains the XT appropriate for that character.
+\ jump table that contains an XT appropriate for that character.
 
 
 :class json-string <super string
@@ -133,13 +133,8 @@
      str val @ :write
      ;m
 ;class
-
 : >pair ( str-obj -- pair-obj) heap> pair ;
 
-
-0 value str? 
-0 value num?
-0 value c
 
 [undefined] >l [if]
 \ the l stack retains objects as they are created and
@@ -154,6 +149,9 @@
 : l-clr l :clear ; \ resets stack to zero items
 [then]
 
+0 value str? \ true if we are parsing a string
+0 value num? \ true if we are parsing a number
+
 : setup
    false to str?
    false to num?
@@ -166,27 +164,31 @@
   locals| xt |
   128 0 do xt jump-table :add loop ;
 
-: c+ c l@ :ch+ ;
+: c+ ( c --) l@ :ch+ ; \ add the char to the string on the l-stack
 ' c+ fill-jump-table
 
-: jt ( index xt -- ) swap jump-table :to ;
+: jt ( c xt -- ) swap jump-table :to ;
+: >jt ( xt c -- xt ) over jt ;
 
-'{' :noname  
-    str? if c+ exit then
+'{' :noname ( c --) 
+    str? if c+ exit else drop then
     >json >l t{ >a ; jt
-10 :noname noop ; jt
-13 :noname noop ; jt
-8  :noname str? if c+ then ; jt
-32 :noname str? if c+ then ; jt
-'"' :noname str? if false to str? 
-                  else true to str? 0 0 >json-string >l
-                  then ; jt
-':' :noname
-    str? if c+ exit then
+:noname ( c --) drop ; \ a noop
+10 >jt
+13 >jt drop
+:noname ( c --) str? if c+ else drop then ;
+8  >jt
+32 >jt drop
+'"' :noname ( c --) drop
+     str? if false to str? 
+          else true to str? 0 0 >json-string >l
+          then ; jt
+':' :noname ( c --)
+    str? if c+ exit then drop
     l> >pair >l ; jt
 
-'[' :noname   
-    str? if c+ exit then
+'[' :noname ( c --) 
+    str? if c+ exit then drop
      >json-array >l  t[ >a ; jt
 
 : (,) 0 locals| j-str |
@@ -205,25 +207,23 @@
 \ , marks the end of a key:value pair if doing a { ... } array
 \   or the end of an element if doing a [ ... ] array
 
-: do-,  
-    str? if c+ exit then
-	\ do nothing if } or ] has already handled it 
+: do-, ( c --)
+    str? if c+ exit then drop
 	l :size 2 < if exit then \ do nothing if } or ] has already handled it 
 	a@ t[ <> if false to str? then (,) ; 
 
 ',' ' do-, jt
 
-'}' :noname  
-    str? if c+ exit then
+'}' :noname ( c --) 
+    str? if c+ exit then drop
     a> drop false to str?  (,) ; jt
 
-']' :noname 
-    str? if c+ exit then
+']' :noname ( c --)
+    str? if c+ exit then 
     do-, a> drop ; jt
 
-: >jt ( xt index -- xt ) over jt ;
 
-:noname \ process number character
+:noname ( c --) \ process possible number character
   str? 0= if 
             num? 0= if 
                      true to num? 0 0 >json-string >l 
@@ -248,24 +248,24 @@
 
 variable adr
  
-:noname str? if c+
-       			   else >null >l
+:noname ( c --) str? if c+
+       			   else drop >null >l
        			        3 adr +!
        			   then ;
 
 'n' >jt
 'N' >jt drop
  
-:noname str? if c+
-                   else true >bool >l
+:noname ( c --) str? if c+
+                   else drop true >bool >l
                         3 adr +!
                    then ;
 
 't' >jt
 'T' >jt drop                   
  
-:noname str? if c+
-                   else false >bool >l
+:noname ( c --) str? if c+
+                   else drop false >bool >l
                         4 adr +!
                    then ;
 
@@ -278,7 +278,7 @@ variable adr
   setup
   ( adr cnt ) >r adr ! adr @ r> + to max-adr
   begin
-   adr @ c@ dup to c jump-table :at execute
+   adr @ c@ dup jump-table :at execute
    1 adr +!
    adr @ max-adr <
   while
@@ -320,6 +320,7 @@ j{ {
   "children": [],
   "spouse": null
 } }j value j
+ ok
 
 
 j :.  
