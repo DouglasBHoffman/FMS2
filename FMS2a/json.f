@@ -1,28 +1,47 @@
 [undefined] >string [if] cr .( file string.f required ) abort [then]
+\ January1, 2021 dbh
+
 [undefined] >int [if] cr .( file int.f required ) abort [then]
 [undefined] >flt [if] cr .( file flt.f required ) abort [then]
 
+\ This parser is baased on the ECMA standard as described here:
+\     https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
+\ with the exception that only ASCII is supported, not UTF-8 or unicode
 
-\ A jump table based json parser. 
+\ It is a jump table based json parser. 
+\ Each character of the JSON text is an index into the 128 cell
+\ jump table. Each cell contains an XT appropriate for that character.
+\ So the algorithm simply steps through each character and executes
+\ the XT for that character. One-pass. No backing up or looking ahead.
 \ A stack is used to push and pop json objects as they are
 \ created and consumed. This is the l stack.
 \ This is a state-based one-pass parser. The state is maintained
-\ using a second stack, the a stack, and two global variables:
-\ str? (are we parsing a string?), num?(are we parsing a number?).
+\ using a second stack, the a stack, and three global variables:
+\ str? (are we parsing a string?), num?(are we parsing a number?)
+\ and esc?(are we parsing an escape character?).
 
-\ Each character of the JSON text is an index into the 128 cell
-\ jump table that contains an XT appropriate for that character.
+\ Note that no effort is made to detect invalid JSON formatting.
 
 
 :class json-string <super string
  :m :. '"' emit super :. '"' emit ;m
- :m :write ( str -- )
-     locals| str |
-    '"' str :ch+  self :@ str :add  '"' str :ch+ ;m
+
+ :m :write {: str -- :}
+    '"' str :ch+  
+      begin
+       super :each
+      while
+        dup case
+             '"' of '\' str :ch+ endof 
+             '\' of '\' str :ch+ endof
+               8 of '\' str :ch+ drop 'b' endof \ backspace
+              12 of '\' str :ch+ drop 'f' endof \ form feed
+            ( all others dropped) endcase str :ch+
+      repeat '"' str :ch+ ;m
+
+
 ;class
 : >json-string heap> json-string ;
-
-:noname cr :. ',' emit space ; value xt
 
 :class json <super array
   :m :. cr '{' emit
@@ -35,8 +54,7 @@
       super :size 0 >
       if super :size 0 ?do i super :at <free loop then  
       super :free ;m \ will free class ptr
-  :m :write ( str -- )
-     locals| str |
+  :m :write {: str -- :}
      '{' str :ch+
      super :size 0 >
      if
@@ -44,8 +62,7 @@
                             ',' str :ch+ bl str :ch+ loop
                             10 str :ch+   str super :last ( pair ) :write
      then 10 str :ch+ '}' str :ch+ ;m
-   :m :search ( adr len -- val t | f )
-      locals| len adr |
+   :m :search {: adr len -- val t | f :}
       super :uneach
       begin
         super :each
@@ -68,12 +85,11 @@
       super :size 0 >
       if super :size 0 ?do i super :at <free loop then  
       super :free ;m \ will free class ptr
-  :m :write ( str -- )
-      locals| str |
+  :m :write {: str -- :}
      '[' str :ch+
      super :size 0 >
      if
-       super :size 1- 0 ?do  str i super :at ( pair )  :write 
+       super :size 1- 0 ?do  str i super :at ( obj )  :write 
                             ',' str :ch+ bl str :ch+ loop
                             10 str :ch+   str super :last ( pair ) :write
      then ']' str :ch+ ;m
@@ -88,29 +104,29 @@
 : a> ( -- n ) \ pop item from stack, last in first out
   a :size 1- a :remove ;
 : .a a :. ;
-: a@ ( -- n ) a :last ; \ retrieve top stack item
+: a@ ( -- n ) a :last ; \ copy top stack item to data stack
 : a-clr a :clear ; \ resets stack to zero items
 
 \ 2 array types for a stack in json parser
 0 constant t{
-2 constant t[
+1 constant t[
+
 
 :class bool
  1 bytes data
  :m :init ( b -- ) data c! ;m
  :m :! ( b --) data c! ;m
  :m :@ ( -- b ) data c@ ;m
- :m :. data c@ if ." true" else ." false" then ;m
- :m :write ( str --)
-     locals| str |
-     data c@ if s" true" else s" false" then str :add ;m
+ : get ( -- adr len ) data c@ if s" true" else s" false" then ;
+ :m :. get type ;m
+ :m :write {: str -- :}
+     get str :add ;m
 ;class
 : >bool ( b -- bool-obj) heap> bool ;
 
 :class null
   :m :. ." null" ;m
-  :m :write \ { str --}
-      locals| str |
+  :m :write {: str -- :}
       s" null" str :add ;m
 ;class
 : >null ( -- null-obj) heap> null ;
@@ -126,12 +142,10 @@
      val @ key @ ;m
   :m :free val @ <free key @ <free ;m
   :m :. key @ :.  ':' emit space val @ :. ;m 
-  :m :write ( str -- )
-     locals| str |
+  :m :write {: str -- :}
      str key @ :write
      ':' str :ch+  bl str :ch+
-     str val @ :write
-     ;m
+     str val @ :write ;m
 ;class
 : >pair ( str-obj -- pair-obj) heap> pair ;
 
@@ -145,23 +159,25 @@
 : l> ( -- n ) \ pop item from stack, last in first out
   l :size 1- l :remove ;
 : .l l :. ;
-: l@ ( -- n ) l :last ; \ retrieve top stack item
+: l@ ( -- n ) l :last ; \ copy top stack item to data stack
 : l-clr l :clear ; \ resets stack to zero items
 [then]
 
+
 0 value str? \ true if we are parsing a string
 0 value num? \ true if we are parsing a number
+0 value esc? \ true if we are parsing an escape sequence in a string
 
 : setup
    false to str?
    false to num?
+   false to esc?
    a-clr
    l-clr ;
 
 128 array jump-table \ a jump table of xts
 
-: fill-jump-table ( xt -- )
-  locals| xt |
+: fill-jump-table {: xt -- :}
   128 0 do xt jump-table :add loop ;
 
 : c+ ( c --) l@ :ch+ ; \ add the char to the string on the l-stack
@@ -170,19 +186,34 @@
 : jt ( c xt -- ) swap jump-table :to ;
 : >jt ( xt c -- xt ) over jt ;
 
+'\' :noname ( c --) \ solidus
+    esc? if ( '\' ) c+ false 
+         else drop true 
+         then to esc? ; jt
+
+'/' :noname ( c --) \ reverse solidus
+    esc? if false to esc? then c+ ; jt
+
+'b' :noname ( c --) \ possible escaped backspace
+    esc? if drop 8 false to esc? then c+ ; jt
+
+'r' :noname ( c --) \ possible escaped cr
+    esc? if drop 13 false to esc? then c+ ; jt
+
 '{' :noname ( c --) 
     str? if c+ exit else drop then
     >json >l t{ >a ; jt
-:noname ( c --) drop ; \ a noop
+' drop 
 10 >jt
 13 >jt drop
 :noname ( c --) str? if c+ else drop then ;
-8  >jt
-32 >jt drop
-'"' :noname ( c --) drop
+9  >jt \ tab
+32 >jt drop \ space
+'"' :noname ( c --) 
+     esc? if c+ false to esc? exit then 
      str? if false to str? 
           else true to str? 0 0 >json-string >l
-          then ; jt
+          then ( c ) drop ; jt
 ':' :noname ( c --)
     str? if c+ exit then drop
     l> >pair >l ; jt
@@ -191,7 +222,7 @@
     str? if c+ exit then drop
      >json-array >l  t[ >a ; jt
 
-: (,) 0 locals| j-str |
+: (,) 0 {: j-str :}
      num? if l> dup to j-str :@ 2dup >integer
 	             				   if nip nip >int j-str <free
 	                               else >float if >flt j-str <free
@@ -214,14 +245,8 @@
 
 ',' ' do-, jt
 
-'}' :noname ( c --) 
-    str? if c+ exit then drop
-    a> drop false to str?  (,) ; jt
-
-']' :noname ( c --)
-    str? if c+ exit then 
-    do-, a> drop ; jt
-
+'}' :noname ( c --) str? if c+ exit then drop false to str? (,) a> drop ; jt
+']' :noname ( c --) str? if c+ exit then do-,              a> drop ; jt
 
 :noname ( c --) \ process possible number character
   str? 0= if 
@@ -247,32 +272,26 @@
 'E' >jt drop
 
 variable adr
- 
-:noname ( c --) str? if c+
-       			   else drop >null >l
-       			        3 adr +!
+
+:noname ( c --) str? if esc? if case
+ 								  'n' of 10  endof \ line feed
+ 								  't' of  9  endof \ tab
+ 								  'f' of 12  endof \ form feed
+ 								0 endcase false to esc?
+							 then c+
+       			   else case
+       			          'n' of >null >l 3 endof
+       			          't' of true >bool >l 3 endof
+       			          'f' of false >bool >l 4 endof
+       			         0 endcase ( n ) adr +! \ skip over n next chars
        			   then ;
 
 'n' >jt
-'N' >jt drop
- 
-:noname ( c --) str? if c+
-                   else drop true >bool >l
-                        3 adr +!
-                   then ;
-
 't' >jt
-'T' >jt drop                   
- 
-:noname ( c --) str? if c+
-                   else drop false >bool >l
-                        4 adr +!
-                   then ;
-
-'f' >jt
-'F' >jt drop
+'f' >jt drop
 
 0 value max-adr
+
 
 : $>json ( adr len -- json-obj )
   setup
@@ -284,16 +303,71 @@ variable adr
   while
   repeat l> ;
 
-: j{ ( "<input stream>" -- json-obj )
-  0 0 >string locals| s |
+
+0 [if] 
+: $>json ( adr len -- json-obj )
+  setup
+  ( adr cnt ) >r adr ! adr @ r> + to max-adr
   begin
-    refilling-parse-name 2dup s" }j" compare 0<> >r
-                         2dup s" }J" compare 0<> r> and
+   adr @ c@ dup 127 > if c+ \ handle utf-8 chars 
+   					  else dup jump-table :at execute
+   					  then
+   1 adr +!
+   adr @ max-adr <
+  while
+  repeat l> ;
+[then]
+
+
+
+
+: refilling-parse ( -- c-addr u )
+	begin
+	   10 parse dup 0= 
+	while
+	  2drop refill 0= -39 and throw
+	repeat ;
+
+0 [if] \ not used
+\ IMPORTANT: end-json must be alone on a single line and must be lower case
+: begin-json ( "<input stream>" -- json-obj )
+  0 0 >string {: s :}
+  begin
+    refilling-parse 2dup s" end-json" compare 
   while
     s :add
   repeat 2drop s :@ $>json  s <free ;
+[then]
+
+: j{ ( "<input stream>" -- json-obj )
+  0 0 >string 0 0 >string {: s s1 :}
+  begin
+    refilling-parse 2dup s1 :! s" }j" s1 :searchCI 0=
+  while
+    s :add
+  repeat 2drop
+  s1 :delete
+  0 s1 :start ! s1 :@sub s :add 
+  s :@ $>json  s <free 
+  s1 :delete s1 :@ evaluate   s1 <free ; 
+
+: json>$ {: json -- str-obj :}
+  0 0 >string dup
+  ( str str ) json :write 
+  json <free
+  ( str ) ;
 
 0 [if]
+
+j{ {
+  "f": "J o" }
+}j value j1
+ 
+j1 :. 
+{
+"f": "J o"
+}ok
+
 
 
 j{ {
@@ -320,9 +394,7 @@ j{ {
   "children": [],
   "spouse": null
 } }j value j
- ok
-
-
+ 
 j :.  
 {
 "firstName": "John", 
@@ -331,28 +403,29 @@ j :.
 "age": 27, 
 "address": 
 {
-"streetAddress": "212ndStreet", 
-"city": "NewYork", 
+"streetAddress": "21 2nd Street", 
+"city": "New York", 
 "state": "NY", 
 "postalCode": "10021-3100"
 }, 
 "phoneNumbers": [ 
 {
 "type": "home", 
-"number": "212555-1234"
+"number": "212 555-1234"
 }, 
 {
 "type": "office", 
-"number": "646555-4567"
+"number": "646 555-4567"
 }], 
 "children": [], 
 "spouse": null
-}ok
+} ok
 
-s" lastname" j :search .s \ => "Smith"( 2 ) \ 16087920 \ -1 ok
+s" lastname" j :search .s \ => "Smith"( 2 ) \ 11714160 \ -1 ok  
 
-s" Venkman" 16087920 :! ok
-j :. 
+s" Venkman" 11714160 :! ok ok \ 2 
+
+j :.  
 {
 "firstName": "John", 
 "lastName": "Venkman", 
@@ -360,55 +433,50 @@ j :.
 "age": 27, 
 "address": 
 {
-"streetAddress": "212ndStreet", 
-"city": "NewYork", 
+"streetAddress": "21 2nd Street", 
+"city": "New York", 
 "state": "NY", 
 "postalCode": "10021-3100"
 }, 
 "phoneNumbers": [ 
 {
 "type": "home", 
-"number": "212555-1234"
+"number": "212 555-1234"
 }, 
 {
 "type": "office", 
-"number": "646555-4567"
+"number": "646 555-4567"
 }], 
 "children": [], 
 "spouse": null
-}ok
+} ok  
 
-0 0 >string value s 
-s j :write ok
+
+j json>$ value s  ok
+
  
-s :. {
+s :.  {
 "firstName": "John", 
 "lastName": "Venkman", 
 "isAlive": true, 
 "age": 27, 
 "address": {
-"streetAddress": "212ndStreet", 
-"city": "NewYork", 
+"streetAddress": "21 2nd Street", 
+"city": "New York", 
 "state": "NY", 
 "postalCode": "10021-3100"
 }, 
 "phoneNumbers": [{
 "type": "home", 
-"number": "212555-1234"
+"number": "212 555-1234"
 }, 
 {
 "type": "office", 
-"number": "646555-4567"
+"number": "646 555-4567"
 }], 
 "children": [], 
 "spouse": null
 } ok
 
-s\" [[\"foo\",1],[\"bar\",[10,\"apples\"]]]" $>json value j2 ok
-j2 :. [ [ "foo", 1], [ "bar", [ 10, "apples"]]]ok
-j2 :size . 2 ok
-0 j2 :at :. [ "foo", 1] ok
-
-
-
 [then]
+
