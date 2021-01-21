@@ -1,16 +1,18 @@
 [undefined] >string [if] cr .( file string.f required ) abort [then]
-\ January1, 2021 dbh  https://github.com/DouglasBHoffman/FMS2
+\ January20, 2021 dbh  https://github.com/DouglasBHoffman/FMS2
+\   added support for unicode
 
 [undefined] >int [if] cr .( file int.f required ) abort [then]
 [undefined] >flt [if] cr .( file flt.f required ) abort [then]
+[undefined] xc@+ [if] cr .( xchar wordset is required )  abort [then]
 
 \ This parser is based on the ECMA standard as described here:
 \     https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
-\ with the exception that only ASCII is supported, not UTF-8 or unicode
 
 \ It is a table based json parser. 
-\ Each character of the JSON text is an index into the 128 cell
-\ table. Each cell contains an XT appropriate for that character.
+\ Each ASCII character of the JSON text is an index into the 128 cell
+\ table. Each cell contains an XT appropriate for that ASCII character.
+\ Unicode chacaters are handled seperately.
 \ So the algorithm simply steps through each character and executes
 \ the XT for that character. One-pass. No backing up or looking ahead.
 \ A stack is used to push and pop json objects as they are
@@ -18,30 +20,70 @@
 \ This is a state-based one-pass parser. The state is maintained
 \ using 2 extra stacks and three global variables:
 \ str? (are we parsing a string?), num?(are we parsing a number?)
-\ and esc?(are we parsing an escape character?).
+\ and esc?(are we parsing an escaped character?).
 
 \ Note that no effort is made to detect invalid JSON formatting.
 
+decimal
 
 :class json-string <super string
+
  :m :. '"' emit super :. '"' emit ;m
 
+
+
+ : processUNI {: str | addr len -- :}
+   super :@ drop ( addr)
+   current-idx @ 1- + dup to addr 4 x-size to len
+   addr xc@+ nip ( xchar ) len 1- current-idx +!
+   '\' str :ch+ '\' str :ch+ 'u' str :ch+
+   hex s>d <# # # # # #> decimal str :add ;
+
+   
+   
  :m :write {: str -- :}
     '\' str :ch+  '"' str :ch+
       begin
        super :each
       while
-        dup case
-             '"' of '\' str :ch+ endof 
-             '\' of '\' str :ch+ endof
-               8 of '\' str :ch+ drop 'b' endof \ backspace
-              12 of '\' str :ch+ drop 'f' endof \ form feed
-            ( all others dropped) endcase str :ch+
+            dup 127 >
+            if drop str processUNI
+		    else   dup case
+		             '"' of '\' str :ch+ endof 
+		             '\' of '\' str :ch+ endof
+		               8 of '\' str :ch+ drop 'b' endof \ backspace
+		              12 of '\' str :ch+ drop 'f' endof \ form feed
+		            ( all others dropped) endcase str :ch+
+	        then
       repeat '\' str :ch+ '"' str :ch+ ;m
-
 
 ;class
 : >json-string heap> json-string ;
+
+0 [if]
+
+j{ { "qz\u20ACBz": 10 } }j  value j
+j :.
+{
+"qz€Bz": 10
+}  
+
+j{ { "qz\u20ACBz": 10 } }j  value j  ok
+j json>$  ok-1 
+dup :. {\"qz\\u20ACBz\":10} ok-1 
+s\" {\"qz\\u20ACBz\":10}" $>json
+dup :. 
+{
+"qz€Bz": 10
+} ok-1 
+
+
+
+[then]
+
+
+
+
 
 :class json <super array
   :m :. cr '{' emit
@@ -273,7 +315,15 @@
 
 variable adr
 
+create xc 4 allot
+
+: processUnicode   0 0 >string {: uni -- :}
+  4 0 do 1 adr +!  adr @ c@  uni :ch+  loop
+  hex uni :@ evaluate decimal dup >r xc xc!+ drop xc r> xc-size ( adr len )
+  l@ :add   uni <free ;
+
 :noname ( c --) str? if esc? if case
+   								  'u' of processUnicode false to esc? exit endof
  								  'n' of 10  endof \ line feed
  								  't' of  9  endof \ tab
  								  'f' of 12  endof \ form feed
@@ -286,19 +336,37 @@ variable adr
        			         0 endcase ( n ) adr +! \ skip over n next chars
        			   then ;
 
+'u' >jt
 'n' >jt
 't' >jt
 'f' >jt drop
 
+0 [if] \ using VFX with xchar.f loaded
+
+j{ { "qz\u20ACBz": 10 } }j value j
+:. 
+{
+"qz€Bz": 10
+} 
+
+[then]
+
 0 value max-adr
 
+: processUni 
+  adr @ dup 4 x-size >r
+  dup r@ l@ :add
+      r> + adr ! ;
 
 : $>json ( adr len -- json-obj )
   setup
   ( adr cnt ) >r adr ! adr @ r> + to max-adr
   begin
-   adr @ c@ dup jump-table :at execute
-   1 adr +!
+   adr @ c@ dup 127 >
+   if drop processUni
+   else dup jump-table :at execute
+        1 adr +!
+   then
    adr @ max-adr <
   while
   repeat l> 
@@ -311,24 +379,6 @@ variable adr
 	while
 	  2drop refill 0= -39 and throw
 	repeat ;
-
-0 [if] \ not used
-\ IMPORTANT: }j must be alone on a single line and must be lower case
-: j{ ( "<input stream>" -- json-obj )
-  0 0 >string {: s :}
-  begin
-    refilling-parse 2dup s" }j" compare 
-  while
-    s :add
-  repeat 2drop s :@ $>json  s <free
-  ( l :size if l> :! then) ;
-[then]
-
-
-: key-val>Pair ( adr len val -- pair-obj )
-  -rot >json-string >pair ( val pair-obj ) :! ;
-
-
 
 : j{ ( "<input stream>" -- json-obj )
   0 0 >string 0 0 >string {: s s1 :}
@@ -344,56 +394,14 @@ variable adr
   s1 :@ evaluate   s1 <free
   ; 
 
-: json>$ {: json -- str-obj :}
+: json>$ {: json -- str-obj :} 
   0 0 >string dup
   ( str str ) json :write 
   json <free
   ( str ) ;
 
-stopincluding
 
 0 [if]
-
-j{ "hello": null 
-}j
-dup :. . 
-  "hello": null 16259664 ok
-16259664 .class pair ok
-
-.l ok
-
-
-
-
-.l ok \ 1 
-. 15819088 ok
-15819088 .class pair ok
-
-15982608 .class null ok
-
-.l ok
-
-.l 
-0 15982624 ok
-.a ok
-l :size . 1 ok
-15982624 :. "hello": "<empty-val>"ok
-
-
-
-
-
-
-j{ {
-  "f": "J o" }
-}j value j1
- 
-j1 :. 
-{
-"f": "J o"
-}ok
-
-
 
 j{ {
   "firstName": "John",
@@ -475,158 +483,6 @@ j :.
 "children": [], 
 "spouse": null
 } ok  
-
-
-j json>$ value s  ok
-
- 
-s :.  {
-"firstName": "John", 
-"lastName": "Venkman", 
-"isAlive": true, 
-"age": 27, 
-"address": {
-"streetAddress": "21 2nd Street", 
-"city": "New York", 
-"state": "NY", 
-"postalCode": "10021-3100"
-}, 
-"phoneNumbers": [{
-"type": "home", 
-"number": "212 555-1234"
-}, 
-{
-"type": "office", 
-"number": "646 555-4567"
-}], 
-"children": [], 
-"spouse": null
-} ok
-
-
-
-: key-val>Pair ( adr len val -- pair-obj )
-  -rot >json-string >pair ( val pair-obj ) :! ;
- 
-s" hello" >null key-val>Pair dup :. .   "hello": null 16124752 ok
-16124752 :. "hello": nullok
-j{ [4, 67, 68.9, "dog" ] }j dup :. . [ 4, 67, 68.9 , "dog"] 16393776 ok
->json ok \ 1 
-16124752 over :add ok \ 1 
-16393776 over :add . 15786176 ok
-15786176 :. 
-{
-"hello": null, 
-[ 4, 67, 68.9 , "dog"]
-}ok
-15786176 .class json ok
-15786176 :size . 2 ok
-0 15786176 :at .class pair ok
-1 15786176 :at .class json-array ok
-1 15786176 :at . 16393776 ok
-16393776 :size . 4 ok
-0 16393776 :at .class int ok
-2 16393776 :at .class flt ok
-3 16393776 :at .class json-string ok
-
-
-s\" {\"hello\": null}" $>json .  16070096 ok
-16070096 :. 
-{
-"hello": null
-}ok
-
-16431344 :. nullok
-
-16171264 :. nullok
-
-dup :.  nullok \ 1 
-
-
-\ build a json structure manually:
->json  value j  ok
-s" value" >json-string >pair   ok \ 1 
-10 >int  ok \ 2 
-swap :!   ok \ 1 
-j :add  ok
-j :. 
-{
-"value": 10
-}ok
-
-s" flag" >json-string >pair 
-false >bool swap :! j :add ok
-j :. 
-{
-"value": 10, 
-"flag": false
-}ok
-
-
-s" array" >json-string >pair ok \ 1 
->json-array ok \ 2 
-1 >int ok \ 3 
-over :add ok \ 2 
-2 >int over :add ok \ 2 
-3 >int over :add ok \ 2 
-swap :! ok \ 1 
-j :add ok
-j :. 
-{
-"value": 10, 
-"flag": false, 
-"array": [ 1, 2, 3]
-}ok
-
-j :size . 3 ok
-2 j :at :. "array": [ 1, 2, 3]ok
-2 j :at :@ . . 13192848 15801136 ok
-13192848 .class json-string ok
-15801136 .class json-array ok
-
-
-s" test" >json-string >pair dup :. . "test": "<empty-val>" 16311632 ok
-4.5e >flt 16311632 :! ok \ 1 
-:. "test": 4.5 ok
-
-
-Forth has no built-in higher level data structures such as arrays,
-dynamically resizeable arrays, strings, dynamically resizeable
-strings, and objects. There is no standardized Forth library to build
-and use such structures. But there are many different Forth libraries,
-written by individuals,available, though finding them is not always easy.
-The syntax and behavior is different for each.
-The library code used below can be found here:
- https://github.com/DouglasBHoffman/FMS2
-
-Load a JSON string into a data structure.
-
-s\" {\"value\":10,\"flag\":false,\"array\":[1,2,3]}" $>json value j 
-j :.    
-{
-"value": 10, 
-"flag": false, 
-"array": [ 1, 2, 3]
-}ok
-
-Create a new data structure and serialize it into JSON.
-
-j{ "another":"esc\"aped" }j 1 j :insert ok
-j :. 
-{
-"value": 10, 
-"another": "esc"aped", 
-"flag": false, 
-"array": [ 1, 2, 3]
-}ok
-
-
-
-Convert the JSON object into a string.
-
-j json>$ cr :. 
-{\"value\":10,\"another\":\"esc\"aped\",\"flag\":false,\"array\":[1,2,3]}ok
-
 
 
 [then]
