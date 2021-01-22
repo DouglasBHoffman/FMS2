@@ -42,7 +42,7 @@ decimal
    
    
  :m :write {: str -- :}
-    '\' str :ch+  '"' str :ch+
+    '"' str :ch+
       begin
        super :each
       while
@@ -55,7 +55,7 @@ decimal
 		              12 of '\' str :ch+ drop 'f' endof \ form feed
 		            ( all others dropped) endcase str :ch+
 	        then
-      repeat '\' str :ch+ '"' str :ch+ ;m
+      repeat '"' str :ch+ ;m
 
 ;class
 : >json-string heap> json-string ;
