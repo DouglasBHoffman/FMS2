@@ -1,7 +1,10 @@
+
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Jan 2020 Douglas B. Hoffman
+\ Jan 23 2021 Douglas B. Hoffman
 \ dhoffman888@gmail.com
+
+\ removed extra [then] in conditional compilation
 
 \ Last Revision: 21 Dec 2019  04:56:21  dbh
 \ defined HOF :apply prior to class array (required)
@@ -11,7 +14,7 @@
 [undefined] -cell [if]
    -1 cells constant -cell [then]
 [undefined] cell- [if]
-: cell- ( addr -- addr-cell ) -cell + ; [then]
+: cell- ( addr -- addr-cell ) -cell + ; 
 [then]
 
 \ very common messages should be defined first
