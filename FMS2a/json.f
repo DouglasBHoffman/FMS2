@@ -1,5 +1,6 @@
 [undefined] >string [if] cr .( file string.f required ) abort [then]
-\ January20, 2021 dbh  https://github.com/DouglasBHoffman/FMS2
+\ January23, 2021 dbh  https://github.com/DouglasBHoffman/FMS2
+\   tweaked a few details
 \   added support for unicode
 
 [undefined] >int [if] cr .( file int.f required ) abort [then]
@@ -36,7 +37,7 @@ decimal
    super :@ drop ( addr)
    current-idx @ 1- + dup to addr 4 x-size to len
    addr xc@+ nip ( xchar ) len 1- current-idx +!
-   '\' str :ch+ '\' str :ch+ 'u' str :ch+
+   '\' str :ch+  'u' str :ch+
    hex s>d <# # # # # #> decimal str :add ;
 
    
@@ -192,7 +193,7 @@ dup :.
 : >pair ( str-obj -- pair-obj) heap> pair ;
 
 
-[undefined] >l [if]
+[undefined] l-clr [if]
 \ the l stack retains objects as they are created and
 \ consumed by new objects needing them
 20 array l
@@ -397,7 +398,7 @@ j{ { "qz\u20ACBz": 10 } }j value j
 : json>$ {: json -- str-obj :} 
   0 0 >string dup
   ( str str ) json :write 
-  json <free
+\  json <free
   ( str ) ;
 
 
