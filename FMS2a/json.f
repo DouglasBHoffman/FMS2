@@ -1,5 +1,7 @@
 [undefined] >string [if] cr .( file string.f required ) abort [then]
-\ January23, 2021 dbh  https://github.com/DouglasBHoffman/FMS2
+\ January26, 2021 dbh  https://github.com/DouglasBHoffman/FMS2
+
+\ eliminated need for 2nd extra stack
 \   tweaked a few details
 \   added support for unicode
 
@@ -19,7 +21,7 @@
 \ A stack is used to push and pop json objects as they are
 \ created and consumed. This is the l stack.
 \ This is a state-based one-pass parser. The state is maintained
-\ using 2 extra stacks and three global variables:
+\ using 1 extra stack and three global variables:
 \ str? (are we parsing a string?), num?(are we parsing a number?)
 \ and esc?(are we parsing an escaped character?).
 
@@ -88,10 +90,10 @@ dup :.
 
 :class json <super array
   :m :. cr '{' emit
-      super :size 0 >
+      self :size 0 >
       if
-        super :size 1- 0 ?do cr i super :at :. ',' emit space loop 
-        cr super :last :. cr 
+        self :size 1- 0 ?do cr i self :at :. ',' emit space loop 
+        cr self :last :. cr 
       then '}' emit ;m
   :m :free
       super :size 0 >
@@ -138,21 +140,6 @@ dup :.
      then ']' str :ch+ ;m
 ;class
 : >json-array heap> json-array ;
-
-\ The astack holds the current state of array parsing.
-\ We are either parsing inside { ... } or [ ... ]
-20 array a
-: >a ( n -- ) \ push item on stack
-  a :add ;
-: a> ( -- n ) \ pop item from stack, last in first out
-  a :size 1- a :remove ;
-: .a a :. ;
-: a@ ( -- n ) a :last ; \ copy top stack item to data stack
-: a-clr a :clear ; \ resets stack to zero items
-
-\ 2 array types for a stack in json parser
-0 constant t{
-1 constant t[
 
 
 :class bool
@@ -215,10 +202,9 @@ dup :.
    false to str?
    false to num?
    false to esc?
-   a-clr
    l-clr ;
 
-128 array jump-table \ a jump table of xts
+128 array jump-table \ a table of xts
 
 : fill-jump-table {: xt -- :}
   128 0 do xt jump-table :add loop ;
@@ -245,7 +231,7 @@ dup :.
 
 '{' :noname ( c --) 
     str? if c+ exit else drop then
-    >json >l t{ >a ; jt
+    >json >l ; jt
 ' drop 
 10 >jt
 13 >jt drop
@@ -263,7 +249,7 @@ dup :.
 
 '[' :noname ( c --) 
     str? if c+ exit then drop
-     >json-array >l  t[ >a ; jt
+     >json-array >l ; jt
 
 : (,) 0 {: j-str :}
      num? if l> dup to j-str :@ 2dup >integer
@@ -284,12 +270,12 @@ dup :.
 : do-, ( c --)
     str? if c+ exit then drop
 	l :size 2 < if exit then \ do nothing if } or ] has already handled it 
-	a@ t[ <> if false to str? then (,) ; 
+	l@ is-a json-array 0= if false to str? then (,) ; 
 
 ',' ' do-, jt
 
-'}' :noname ( c --) str? if c+ exit then drop false to str? (,) a> drop ; jt
-']' :noname ( c --) str? if c+ exit then do-,              a> drop ; jt
+'}' :noname ( c --) str? if c+ exit then drop false to str? (,) ; jt
+']' :noname ( c --) str? if c+ exit then do-,                   ; jt
 
 :noname ( c --) \ process possible number character
   str? 0= if 
@@ -390,15 +376,16 @@ j{ { "qz\u20ACBz": 10 } }j value j
   repeat 2drop
   s1 :delete
   0 s1 :start ! s1 :@sub s :add 
-  s :@ $>json  s <free 
+  s :@ $>json   
   s1 :delete 
-  s1 :@ evaluate   s1 <free
+  s1 :@ evaluate   s1 <free s <free
   ; 
+
 
 : json>$ {: json -- str-obj :} 
   0 0 >string dup
   ( str str ) json :write 
-\  json <free
+\  json <free  \ must free the json manually when desired
   ( str ) ;
 
 
