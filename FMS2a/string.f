@@ -1,3 +1,4 @@
+
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
 \ Jan 2020 Douglas B. Hoffman
@@ -192,7 +193,7 @@ fmsCheck? [if]
      self :=subCI ;f
 
 : (search)1 ( addr len -- flag ) dup len @ end @ - > ;
-: str-obj ( -- str-obj) heap> string 128 allocate throw ;
+: str-obj ( addr len -- str-obj) heap> string 128 allocate throw ;
 : (search)2 ( -- len) data @ end @ + ( start-addr) len @ end @ - ( len) ;
 : (search)3 end @ + dup start ! over :size + end ! true ;
 
@@ -317,31 +318,6 @@ fmsCheck? [if]
    ['] :searchCI (replall) ;
  
 
-
-
-\ find substring(s) delimited by:
-\ 1) start of string and char
-\ 2) and char and char
-\ 3) and char and end of string
-\ return all of them as an array of string objects allocated in the heap
-: :split ( char str-obj -- 1-arry-obj )
-    heap> array 0 locals| strt arr obj c |
-   obj :reset
-   begin
-     c obj :chsearch
-   while
-    obj :start @ obj :end @
-    strt obj :start ! -1 obj :end +!
-    obj :@sub heap> string arr :add
-    dup to strt
-    obj :end ! obj :start !
-   repeat
-    1 obj :start +!
-    obj :size obj :end !
-    obj :@sub heap> string arr :add
-   arr ;
-
-
 \ remove leading and trailing chars, removes more than one char(s) occurring consecutively between words
 \ original string is untouched, new heap string is returned
 : :remove-extra-chars ( c str-obj -- newstr )
@@ -353,3 +329,61 @@ fmsCheck? [if]
                 loop
                 last-char-was-c? if newstr :size 1- newstr :resize then
                 newstr ;
+
+
+\ find substring(s) delimited by:
+\ 1) start of string and char
+\ 2) and char and char
+\ 3) and char and end of string
+\ return all of them as an array of string objects allocated in the heap
+: :split ( char str-obj -- 1-arry-obj )
+    heap> array 0 locals| strt arr obj c |
+   obj :reset
+   c obj :remove-extra-chars to obj
+   obj :reset
+   begin
+     c obj :chsearch
+   while
+    obj :start @ obj :end @
+    strt obj :start ! -1 obj :end +!
+    obj :@sub heap> string arr :add
+    dup to strt
+    obj :end ! obj :start !
+   repeat
+   obj :start @ obj :at c =
+     if 1 obj :start +! then
+    obj :size obj :end !
+    obj :@sub heap> string arr :add
+   arr ;
+
+
+
+
+
+0 [if]
+
+: .hex                  \ n -- ; used for log file only
+  3 out +!                              \ increment counter
+  base @ >r hex                         \ preserve base
+  0ff f-and s>d <# # # #> write-text    \ write number
+  sp 1 write-text                       \ write space
+  r> base !                             \ restore base
+;
+
+: .hex ( n -- ) hex . decimal ;
+
+226 .hex  
+
+debug on
+s\" \"qz\u00E2\u0082\u00AC\"" $>json
+
+
+226 255 base ! . decimal  ok
+
+s" 0082" hex evaluate decimal . 130 ok
+
+
+j{ "qz\u00E2\u0082\u00AC": 10 }j 
+
+
+[then]

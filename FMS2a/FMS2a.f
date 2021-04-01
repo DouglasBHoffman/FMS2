@@ -1,19 +1,20 @@
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Dec 11 2020 Douglas B. Hoffman
-\   made is-a state smart for development only, added is-a-kindOf, added .class
+\ Feb 23 2021 Douglas B. Hoffman
+\ simplified ?isSel
+\   made is-a state smart, added is-a-kindOf, added .class
 \ added JSON support to the library
 \ dhoffman888@gmail.com
 
 [defined] >M4TH [if]
 ONLY FORTH DEFINITIONS
 >M4TH
- traceoff debug off
+\ traceon debug off
 anew --fms--
 [then]
 
 \ optional unFREEd memory checker, for development
-\ include /FMS2a/mem.f
+\ include /Users/doughoffman/Desktop/FMS2a/mem.f
 
 [undefined] cell [if] 1 cells constant cell [then]
 [undefined] +order [if] : +order ( wid -- ) >r get-order r> swap 1+ set-order ; [then]
@@ -23,7 +24,7 @@ decimal
 
 \ *** BEGIN FMS2 CODE ***
 
-true constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
+0 constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
 
 0 value dflt-cur
 0 value self
@@ -86,10 +87,16 @@ message-wid +order \ make it the first wordlist to be searched, always
 
 : ex-meth ( obj xt -- ) self >r swap to self execute r> to self ;
 
+\ : ?isSel ( "<name>" -- table-offset t | f) 
+                 \ selector-ID = table-offset
+\  >in @ bl word count message-wid search-wordlist
+\  if ( in xt ) drop >in ! bl word find drop >body ( addr ) @ true exit 
+\  then >in ! false ;
+
 : ?isSel ( "<name>" -- table-offset t | f) 
                  \ selector-ID = table-offset
   >in @ bl word count message-wid search-wordlist
-  if ( in xt ) drop >in ! bl word find drop >body ( addr ) @ true exit 
+  if ( in xt ) nip >body ( addr ) @ true exit 
   then >in ! false ;
 
 
@@ -136,7 +143,6 @@ fmsCheck? [if]
             ( table-offset ) r@ cell+ @ @ ( ^dspatch ) >xt ( xt )
             postpone literal postpone ex-meth
           then r> drop ; 
-
 
 : embed-make-ivar ( ^cls-eo offset "eo-name" -- )
   create immediate ( n ) , ( ^cls-eo ) ,
@@ -208,6 +214,9 @@ fmsCheck? [if]
 
 0 value (dict)-xt \ will contain xt for (dict)
 
+\ : ex-meth ( obj xt -- ) self >r swap to self execute r> to self ;
+\ : >xt ( table-offset ^dispatch -- xt ) + @ ;
+
 : ?execute-method 
   state @
   if
@@ -220,19 +229,21 @@ fmsCheck? [if]
     else \ no message so just compile addr of object
       postpone literal
     then
-  then ;
+  then ; 
+
 
 : (obj) \ Compile time ( "spaces<name>" -- ) \ name of the new dictionary object
    create  immediate
    \ Run time: ( -- ^obj )
    \   or execute: ^obj <message:>
-   does> ?execute-method ; 
+   does> ?execute-method
+   ; 
 
 : build ( class -- )
   ^class
   if embed-obj \ inside a class definition, so we are building an embedded object as ivar declaration
   else \ outside a class definition, so instantiate a new named dictionary object
-    (obj) (dict)-xt execute drop
+    create (dict)-xt execute drop
   then ;
 
 : >lower ( char -- char') 32 or ; \ return lower-case character of c
@@ -363,7 +374,7 @@ fmsCheck? [if] \ debugging tool
 
 \ *** END FMS2 CODE ***
 
-here swap - cr .  .( bytes used ) \ 7458 bytes on VFX Forth for OS X IA32 Version: 4.72 (32-bit)
+here swap - cr .  .( bytes used ) \ 7426 bytes on VFX Forth for OS X IA32 Version: 4.72 (32-bit)
                                   \ 5693 bytes on SwiftForth i386-macOS 3.10.5 15-Dec-2020 (32-bit)
 
 
@@ -376,23 +387,155 @@ here swap - cr .  .( bytes used ) \ 7458 bytes on VFX Forth for OS X IA32 Versio
 ' restore is BeforeAlert 
 [then]
 
+0 [if]
 
+:class foo 
+  cell bytes data
+  :m :init ( o --) 66 data ! ;m
+  :m :get ( o -- n) data @ ;m
+;class 
+
+foo  x    
+ 
+x :get . 66 ok
+
+: go :get ;  ok
+see go 
+GO 
+( 00088940    8B13 )                  MOV       EDX, 0 [EBX]
+( 00088942    0315C0880800 )          ADD       EDX, [000888C0]
+( 00088948    FF3554940600 )          PUSH      [00069454]
+( 0008894E    8B12 )                  MOV       EDX, 0 [EDX]
+( 00088950    891D54940600 )          MOV       [00069454], EBX
+( 00088956    8BCA )                  MOV       ECX, EDX
+( 00088958    8B5D00 )                MOV       EBX, [EBP]
+( 0008895B    8D6D04 )                LEA       EBP, [EBP+04]
+( 0008895E    FFD1 )                  CALL      ECX
+( 00088960    5A )                    POP       EDX
+( 00088961    891554940600 )          MOV       [00069454], EDX
+( 00088967    C3 )                    NEXT,
+( 40 bytes, 12 instructions )
+
+[then]
+
+
+
+
+
+
+\ stopincluding
 -1 [if] \ Recommended class library file includes.
         \ Actually, none of these files are required to use FMS.
-include /FMS2a/ptr.f
-include /FMS2a/utility-words.f
-include /FMS2a/array.f
-include /FMS2a/string.f
-include /FMS2a/int.f
-include /FMS2a/flt.f
-include /FMS2a/file.f
-include /FMS2a/farray.f
-include /FMS2a/arrays.f
-include /FMS2a/objectArray.f
-include /FMS2a/json.f
-include /FMS2a/hash-table.f
-include /FMS2a/hash-table-m.f
-include /FMS2a/FMS2Tester.f  \ not yet comprehensive 
+[defined] VFXForth [if]
+include /Users/doughoffman/VfxOsxPro/Examples/quotations.fth
+include /Users/doughoffman/VfxOsxPro/Lib/xchar.fth
+[then]
+		[undefined] F+ [defined] VFXForth and [if]
+  include /Users/doughoffman/VfxOsxPro/Lib/x86/Ndp387.fth [then]
+				   [then]
+[defined] 'SF [if]
+   include /Users/doughoffman/Desktop/fpmathSF.f
+   
+    [then]
+    
+here
+include /Users/doughoffman/Desktop/FMS2a/ptr.f 
+
+here swap - cr .  .( bytes used )
+
+here
+include /Users/doughoffman/Desktop/FMS2a/utility-words.f
+here swap - cr .  .( bytes used )
+
+here
+include /Users/doughoffman/Desktop/FMS2a/array.f
+here swap - cr .  .( bytes used )
+
+here
+include /Users/doughoffman/Desktop/FMS2a/string.f
+here swap - cr .  .( bytes used )
+
+here
+include /Users/doughoffman/Desktop/FMS2a/int.f
+here swap - cr .  .( bytes used )
+
+here
+include /Users/doughoffman/Desktop/FMS2a/flt.f
+here swap - cr .  .( bytes used )
+
+here
+include /Users/doughoffman/Desktop/FMS2a/file.f
+here swap - cr .  .( bytes used )
+
+here
+include /Users/doughoffman/Desktop/FMS2a/farray.f
+here swap - cr .  .( bytes used )
+
+here
+include /Users/doughoffman/Desktop/FMS2a/arrays.f
+here swap - cr .  .( bytes used )
+
+here
+include /Users/doughoffman/Desktop/FMS2a/objectArray.f
+here swap - cr .  .( bytes used )
+
+[defined] 'SF [if]
+include /Users/doughoffman/Desktop/FMS2a/jsonSF.f
+[then]
+
+[defined] VFXForth [if]
+here
+include /Users/doughoffman/Desktop/FMS2a/json.f
+here swap - cr .  .( bytes used )
+[then]
+
+
+here
+include /Users/doughoffman/Desktop/FMS2a/hash-table.f
+here swap - cr .  .( bytes used )
+
+here
+include /Users/doughoffman/Desktop/FMS2a/hash-table-m.f
+here swap - cr .  .( bytes used )
+
+\ include /Users/doughoffman/Desktop/FMS2a/FMS2Tester.f  \ not fully comprehensive yet
+
 [then]  
 
+
+0 [if] \ Optional Diagnostics/Inspection code 
+
+\ Example Use:  dc string  \ "dump class string"
+
+: (dd) ( ^cls -- )
+  ." DISPATCH TABLE"
+  to ^class 
+  cr ." address " ." cell#  " ." XT  " 
+  cr ^class @ cell - . -1 . ^class >class . ."  => ^class at cell -1"
+  ^class @ @  cell /  1+ 0
+  ?DO cr ^class @ i cells + . i . ^class @ i cells + @ .
+   i 0= if ."  cell 0 contains the max valid table-offset" then
+  LOOP cr ;
+
+0 value addr 
+: (dc) ( ^class -- )
+  cr ." DUMP CLASS"
+ 0 to addr to ^class 
+ cr ^class . 2 spaces 0 . ." ^class=" ^class . ." ^class @ => " ^class @ .  ." = ^dispatchTable"
+ cr  ^class DFA dup . 2 spaces 1  . @  . ."  ^class DFA @  => obj length without indexed area"
+ cr  ^class SFA dup . space 2  . @ . ."   ^class SFA @ => superclass "
+ cr  ^class WIDA dup . space 3  . @ . ."   ^class WIDA @ => wordlist id "
+ cr  ^class IFA dup . space 4  . @ . ."   ^class IFA @ => ^ifa "
+ ;
+
+\ "dump class"
+: dc  \ usage: dc <classname>  
+ ' >body
+ to ^class 
+ ^class (dc)
+ ^class (dd)
+ 0 to ^class ;
+
+ 
+[then]
 
