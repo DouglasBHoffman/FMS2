@@ -1,4 +1,4 @@
-\ Last Revision: 23 Jun 2021  12:34:06  dbh
+\ Last Revision: 25 Jun 2021  05:44:31  dbh
 
 
 decimal
@@ -8,6 +8,9 @@ decimal
 [undefined] place [if] : place 2dup 2>r 1+ swap move 2r> c! ; [then]
 [undefined] +order [if] : +order ( wid -- ) >r get-order r> swap 1+ set-order ;
 [then]
+
+\ file mem.f is only used for debugging allocated memory FREEing
+\ include FMS2LL/mem.f
 
 here
 

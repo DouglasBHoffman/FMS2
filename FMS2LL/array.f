@@ -1,3 +1,4 @@
+\ Last Revision: 25 Jun 2021  05:46:48  dbh
 
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
@@ -155,6 +156,10 @@ sel :each
                              \ items in array are changed
      locals| xt |
      self :size 0 ?do i eself :at xt execute i eself :to loop ;m
+
+ :m :free
+    self :size 0 ?do i eself :at dup alloc? if <free then loop
+    super :free ;m
 
 ;class
 

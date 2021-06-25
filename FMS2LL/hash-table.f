@@ -8,6 +8,9 @@
 
 [undefined] string [if] .( requires classes array and string to be loaded) abort [then]
 
+:class ht-array <super array
+ :m :free data @ free throw ;m
+;class
 
 defer free-val
 
@@ -48,7 +51,7 @@ defer free-val
  cell bytes last-node \ required for subclass hash-table-m
  cell bytes h.current-idx \ for :each
  
- :m :init heap> array table !
+ :m :init heap> ht-array table !
     0 #nodes !
     100 load !
     3 0 do 0 table @ :add loop \ initialize with room for 3 nodes 
@@ -176,7 +179,7 @@ defer free-val
        \ and do it if required
        #nodes @ table @ :size load @ 100 */ >
        if table @ :size 2* 1+ ( new-size )
-          heap> array ( new-size new-table )
+          heap> ht-array ( new-size new-table )
           2dup to new-table 0 ?do 0 new-table :add loop
           transfer then
        ;m 
@@ -191,7 +194,6 @@ defer free-val
    r@ :next ?dup if ( next-node) recurse
                    then r> <free ;
 
-
 :m :free
     begin
       table @ :each
@@ -199,6 +201,16 @@ defer free-val
       ?dup if ( node ) (free)
             then
     repeat table @ <free ;m 
+
+0 [if]
+:m :free
+    begin
+      table @ :each
+    while
+      ?dup if ( node ) (free)
+            then
+    repeat table @ free throw ;m 
+[then]
 
 
 \ dump the entire hash table and each node
@@ -358,10 +370,10 @@ ok
 
 
 
-20 s" dog" t :insert ok
-30 s" carp" t :insert ok
-40 s" cat" t :insert ok
-50 s" frog" t :insert ok
+20 s" dog" t :insert 
+30 s" carp" t :insert 
+40 s" cat" t :insert 
+50 s" frog" t :insert 
  ok
  ok
  ok
