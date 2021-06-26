@@ -368,4 +368,7 @@ include FMS2LL/hash-table.f
 include FMS2LL/hash-table-m.f
 include FMS2LL/btree.f
 
+\ optional testing routines
+\ include FMS2LL/FMS2Tester.f
+
 [then]
