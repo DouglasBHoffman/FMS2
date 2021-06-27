@@ -1,3 +1,4 @@
+\ Last Revision: 25 Jun 2021  05:46:48  dbh
 
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
@@ -33,7 +34,7 @@ sel :each
 :class array <super ptr \ ( max#elems -- ) dict>  or  ( -- ) heap>
  \ len in class ptr will become maxsize for a static array
      \ len = max number of elems for the static array
-\  1 bytes alloc? \ an alloc object will be allocated in the heap
+  1 bytes alloc? \ an alloc object will be allocated in the heap
   cell bytes current-idx
   cell bytes #elems 
   cell bytes elemSize
@@ -47,7 +48,7 @@ sel :each
  : check ( n --) len @ > abort" array maxsize exceeded" ;
  
  : (resize) ( #elems -- )
-    self alloc? 
+    alloc? c@
     if dup  #elems !  elemSize @ * super :resize 
     else
        dup check #elems !
@@ -63,7 +64,7 @@ sel :each
  :m :clear \ reset the array size to zero
     0 #elems !
     0 current-idx !
-    self alloc?  if 0 super :resize then ;m
+     alloc? c@  if 0 super :resize then ;m
 
  :m :remove ( idx -- elem )
     dup self :at
@@ -72,7 +73,7 @@ sel :each
  :m :uneach 0  current-idx ! ;m
 
  :m :init \ ( -- ) or if static: ( max#elems --)
-    self alloc? 
+    ?alloc dup  alloc? c! 
     if  0 super :init 
     else ( max#elems ) dup len ! cells align here swap allot data !
     then
@@ -196,12 +197,11 @@ sel :each
  \ true condition defined by the xt (the array' is allocated in the heap)
  
  \ BUT, note the problem of having two copies of the same object. Use care.
- \ Only <free or <freeAll the original array, just use free on 1array'
+ \ Only <free or <freeAll the original array, just use free on array'
 
-0 [if]
-: :filter ( xt array -- 1array' )
+: :filter ( xt array -- array' )
    0 locals| obj' obj xt |
-   obj >class (heap) to obj'
+   obj @ (heap) to obj'
    obj :uneach
    begin
     obj :each
@@ -221,43 +221,5 @@ sel :each
    dup is-a-kindof array
    if recurse else <free then
   repeat obj <free ;
-[then]
 
 
-
-0 [if]
-
-5 array a ok ok
-
-a :. ok
-1 a :add ok
-10 a :add ok
-2 a :add ok
- ok
- ok
-a :. 
-0 1 
-1 10 
-2 2 ok
-2 a :at . 2 ok
-
-
-10 a :at .  
--check  ok
-100 a :at . 0 ok
-
-
-10 a :at   
-. 0 ok
-+check ok
-
-a :sort ok
-a :. 
-0 1 
-1 2 
-2 10 ok
-
-
-
-
-[then]
