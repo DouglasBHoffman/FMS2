@@ -14,7 +14,7 @@
  cell bytes astart \ for shell sort
 
  :m :init \ ( -- ) or if static: ( max#elems --)
-    self alloc?
+    ?alloc dup  alloc? c!
     if 0 dup allocate throw data ! len !  
     else ( max#elems ) dup len ! floats align here swap allot data !
     then

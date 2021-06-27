@@ -118,7 +118,7 @@ defer lower
 
 
  :m :init \ ( adr len -- ) or if static: ( adr len max --)
-    self alloc? 
+    ?alloc 
     if dup super :init self :! 0 maxsize !
     else dup maxsize ! align here swap allot data ! self :! 
     then 0 current-idx ! eself :reset ;m

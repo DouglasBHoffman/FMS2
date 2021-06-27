@@ -1,4 +1,4 @@
-\ Last Revision: 25 Jun 2021  05:44:31  dbh
+\ Last Revision: 27 Jun 2021  10:03:28  dbh
 
 
 decimal
@@ -9,10 +9,9 @@ decimal
 [undefined] +order [if] : +order ( wid -- ) >r get-order r> swap 1+ set-order ;
 [then]
 
-\ file mem.f is only used for debugging allocated memory FREEing
-\ include FMS2LL/mem.f
-
 here
+
+\ include /Users/doughoffman/Desktop/FMS2LL/mem.f
 
 0 value dflt-cur
 get-current to dflt-cur
@@ -89,7 +88,7 @@ by inspecting the definition of the instance variable. See the does> action of (
 
 \ meta is a dummy class that class object inherits from
 \ create meta classSize dup allot meta swap erase  cell meta dfa !
-create meta classSize dup allot meta swap erase  cell 1+ meta dfa !
+create meta classSize dup allot meta swap erase  cell meta dfa !
 
 : fms-set-order ( cls --) \ make all instance variables, class variables, helper defs visible
   begin  
@@ -177,29 +176,25 @@ create meta classSize dup allot meta swap erase  cell 1+ meta dfa !
 : embed-obj ( ^cls-eo "eo-name" -- ) >r align ^class ifa link
  r@ , ^class dfa @ ( offset ) dup , r@ r> dfa @ ( offset ^cls-eo size-of-eo ) embed-bytes ;
 
-: (setup-eos) \ {: f obj class -- :} \ store ^cls in first cell of each eo
-   locals| class obj f |
-   obj class
+: (setup-eos) ( obj class -- ) 
     ifa
   begin \ walk the linked-list
     @ ?dup
   while
     ( we have an eo )
-    dup >r
-	       2 cells + @ ( obj eo-offset )
+    >r
+	       r@ [ 2 cells ] literal + @ ( obj eo-offset )
 	       over + ( obj eo )
 	       r@ cell+ @ ( obj eo ^class-eo )
-	       2dup swap ( obj eo ^class-eo ^class-eo eo  ) ! \ store ^class
-	       ( obj eo ^class-eo) over ( obj eo ^class-eo eo ) f swap cell+ c!
+	       2dup swap ( obj eo ^class-eo ^class-eo eo ) ! \ store ^class
 	       ( obj eo ^class-eo ) over >r
-	       f -rot
 	       recurse \ must set up eos of eos nested to any level
 	       r> drop
     r>
-  repeat drop ;
-: setup-eos ( f obj -- )
-  dup @ ( f obj class ) (setup-eos)  ;
+  repeat  drop ;
 
+: setup-eos ( obj -- )
+  dup @ ( obj class ) (setup-eos)  ;
 
 0 value (dict)-xt \ will contain xt for (dict)
 
@@ -251,14 +246,17 @@ defer restore  ' restore-order is restore
   :m :free ;m
 ;class
 
-: (pre) ( cls f -- f cls n) swap dup dfa @ ;  
-: (post) ( ... f cls a -- obj) dup >r ( f cls a) ! r@ ( f a ) 2dup ( f a f a) cell+ c! ( f a) setup-eos 
-   r@ ( a) :init r> ( a) ;
+
+0 value ?alloc
+: (pre) ( cls flag -- cls n ) to ?alloc dup dfa @ ;
+: (post) ( ...cls a -- obj ) tuck ! dup >r r@ setup-eos :init r> ;
+
 
 : make-obj ( cls f -- obj) 
   if -1 (pre) allocate throw  
   else 0 (pre) align here swap allot  
   then (post) ;
+
 
 : (dict) ( cls -- obj ) 0 make-obj ;  ' (dict) to (dict)-xt
 : (heap) ( cls -- obj ) -1 make-obj ;
@@ -343,14 +341,17 @@ counter go counter - .  \ 5221 late binding to dict and embedded objects
 
 [defined] VFXForth [if]
 
-  include /Users/doughoffman/VfxOsxPro/Examples/quotations.fth
-  include /Users/doughoffman/VfxOsxPro/Lib/xchar.fth
+\ quotations.fth are not required, but are nice to have
+  include VfxOsxPro/Examples/quotations.fth
+  
+  \ xchar.fth is only required if you want unicode capability in json.f
+  include VfxOsxPro/Lib/xchar.fth
 		[undefined] F+ [if]
-  include /Users/doughoffman/VfxOsxPro/Lib/x86/Ndp387.fth [then]
+  include VfxOsxPro/Lib/x86/Ndp387.fth [then]
 
 				   [then]
 [defined] 'SF [if]
-  include /Users/doughoffman/Desktop/fpmathSF.f
+  include /fpmathSF.f
     [then]
 
 include FMS2LL/ptr.f
