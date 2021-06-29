@@ -1,4 +1,4 @@
-\ Last Revision: 27 Jun 2021  10:03:28  dbh
+\ Last Revision: 29 Jun 2021  05:52:34  dbh
 
 
 decimal
@@ -153,7 +153,7 @@ create meta classSize dup allot meta swap erase  cell meta dfa !
   postpone ; swap ! ; immediate
 
 : super ( 'name' -- ) ' >body ^class sfa @ mfa fm compile, ; immediate
-: eself ( 'name' --) ' >body ^class mfa fm compile, ; immediate
+: eself ( 'name' --)  ' >body ^class       mfa fm compile, ; immediate
 
 \ the action of an instance variable is to return its address
 \ which is the address of the object, self, plus the offset
@@ -268,7 +268,6 @@ defer restore  ' restore-order is restore
  ' >body postpone literal postpone (dict) ; immediate
 : <free  ( heap-obj --) dup :free free throw ;
 
-: alloc? ( obj -- f) cell+ c@ ; 
 
 \ is-a is compile-ony
 : is-a ( obj "classname" -- flag ) 
@@ -286,7 +285,7 @@ defer restore  ' restore-order is restore
   postpone @ ' >body postpone literal postpone (is-a-kindOf)
   ; immediate
 
-cr here swap - . .( bytes)  \ 4645  SF 32-bit
+cr here swap - . .( bytes)  \ 4485  SF 32-bit
 
 [defined] >M4TH [if]
 : restore-MF ONLY FORTH DEFINITIONS >M4TH 0 to ^class ;
@@ -342,34 +341,34 @@ counter go counter - .  \ 5221 late binding to dict and embedded objects
 [defined] VFXForth [if]
 
 \ quotations.fth are not required, but are nice to have
-  include VfxOsxPro/Examples/quotations.fth
+  include /Users/doughoffman/VfxOsxPro/Examples/quotations.fth
   
   \ xchar.fth is only required if you want unicode capability in json.f
-  include VfxOsxPro/Lib/xchar.fth
+  include /Users/doughoffman/VfxOsxPro/Lib/xchar.fth
 		[undefined] F+ [if]
-  include VfxOsxPro/Lib/x86/Ndp387.fth [then]
+  include /Users/doughoffman/VfxOsxPro/Lib/x86/Ndp387.fth [then]
 
 				   [then]
 [defined] 'SF [if]
-  include /fpmathSF.f
+  include /Users/doughoffman/Desktop/fpmathSF.f
     [then]
-
-include FMS2LL/ptr.f
-include FMS2LL/utility-words.f
-include FMS2LL/array.f
-include FMS2LL/string.f
-include FMS2LL/int.f
-include FMS2LL/flt.f
-include FMS2LL/file.f
-include FMS2LL/farray.f
-include FMS2LL/arrays.f 
-include FMS2LL/objectArray.f 
-include FMS2LL/json.f
-include FMS2LL/hash-table.f
-include FMS2LL/hash-table-m.f
-include FMS2LL/btree.f
+\ /Users/doughoffman/FMS2-master/FMS2LL/FMS2LL.f
+include /Users/doughoffman/FMS2-master/FMS2LL/ptr.f
+include /Users/doughoffman/FMS2-master/FMS2LL/utility-words.f
+include /Users/doughoffman/FMS2-master/FMS2LL/array.f
+include /Users/doughoffman/FMS2-master/FMS2LL/string.f
+include /Users/doughoffman/FMS2-master/FMS2LL/int.f
+include /Users/doughoffman/FMS2-master/FMS2LL/flt.f
+include /Users/doughoffman/FMS2-master/FMS2LL/file.f
+include /Users/doughoffman/FMS2-master/FMS2LL/farray.f
+include /Users/doughoffman/FMS2-master/FMS2LL/arrays.f 
+include /Users/doughoffman/FMS2-master/FMS2LL/objectArray.f 
+include /Users/doughoffman/FMS2-master/FMS2LL/json.f
+include /Users/doughoffman/FMS2-master/FMS2LL/hash-table.f
+include /Users/doughoffman/FMS2-master/FMS2LL/hash-table-m.f
+include /Users/doughoffman/FMS2-master/FMS2LL/btree.f
 
 \ optional testing routines
-\ include FMS2LL/FMS2Tester.f
+include /Users/doughoffman/FMS2-master/FMS2LL/FMS2Tester.f
 
 [then]
