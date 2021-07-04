@@ -6,6 +6,7 @@
 \ eliminated need for 2nd extra stack
 \   tweaked a few details
 \   added support for unicode
+\ jul 3, 2021  custom :insert for json ( subclass of array )
 
 [undefined] >int [if] cr .( file int.f required ) abort [then]
 [undefined] >flt [if] cr .( file flt.f required ) abort [then]
@@ -95,6 +96,16 @@ dup :.
 
 
 :class json <super array
+
+ :m :insert ( n idx -- ) \ increase size of array by one, place n at given index position
+                         \ after having moved all ensuing elements up by one position.
+    >r
+    #elems @ 1+ (resize)
+    r@ eself :size 1- ?do i 1- eself :at i eself :to -1 +loop
+    ( n) r> eself :to 
+   ;m
+
+
   :m :. cr '{' emit
       self :size 0 >
       if
