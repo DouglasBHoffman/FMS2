@@ -7,9 +7,11 @@
 \   tweaked a few details
 \   added support for unicode
 \ jul 3, 2021  custom :insert for json ( subclass of array )
+\ jul 15, 2021 removed some locals
 
 [undefined] >int [if] cr .( file int.f required ) abort [then]
 [undefined] >flt [if] cr .( file flt.f required ) abort [then]
+[undefined] >l [if] cr .( file stack.f required ) abort [then]
 \ [undefined] xc@+ [if] cr .( xchar wordset is required )  abort [then]
 
 \ This parser is based on the ECMA standard as described here:
@@ -30,6 +32,7 @@
 
 \ Note that no effort is made to detect invalid JSON formatting.
 \ Invalid formatting will likely result in a crash.
+\ moved l-stack to file stack.f \ jul 2021
 
 decimal
 
@@ -170,16 +173,18 @@ dup :.
  : get ( -- adr len ) bdata c@ if s" true" else s" false" then ;
  :m :. get type ;m
  :m :write \ {: str -- :}
-     locals| str |
-     get str :add ;m
+     \ locals| str |
+     >r
+     get r> :add ;m
 ;class
 : >bool ( b -- bool-obj) heap> bool ;
 
 :class null <super object
   :m :. ." null" ;m
   :m :write \ {: str -- :}
-      locals| str |
-      s" null" str :add ;m
+      \ locals| str |
+      >r
+      s" null" r> :add ;m
 ;class
 : >null ( -- null-obj) heap> null ;
 
@@ -195,27 +200,15 @@ dup :.
   :m :free val @ <free pkey @ <free ;m
   :m :. pkey @ :.  ':' emit space val @ :. ;m 
   :m :write \ {: str -- :}
-     locals| str |
-     str pkey @ :write
-     ':' str :ch+ 
-     str val @ :write ;m
+     \ locals| str |
+     dup >r
+     ( str) pkey @ :write
+     ':' r@ :ch+ 
+     r> val @ :write ;m
 ;class
 : >pair ( str-obj -- pair-obj) heap> pair ;
 
 \ *** begin json parsing state definitions
-
-[undefined] l-clr [if]
-\ the l stack contains objects as they are created and
-\ inspected, added-to, or consumed as parsing progresses
-20 array l
-: >l ( obj -- ) \ push obj on stack
-  l :add ;
-: l> ( -- obj ) \ pop obj from stack, last in first out
-  l :size 1- l :remove ;
-: .l l :. ; \ print the objects on the stack, useful for debugging 
-: l@ ( -- obj ) l :last ; \ copy top stack obj to data stack
-: l-clr l :clear ; \ resets stack to zero items
-[then]
 
 0 value str? \ true if we are parsing a string
 0 value num? \ true if we are parsing a number ( integer or float )
@@ -260,8 +253,8 @@ dup :.
     >json >l ; jt
     
 ' drop 
-10 >jt
-13 >jt drop
+10 >jt  \ line feed
+13 >jt drop  \ carriage return
 
 :noname ( c --) str? if c+ else drop then ;
 9  >jt \ tab
@@ -280,11 +273,19 @@ dup :.
     str? if c+ exit then drop
      >json-array >l ; jt
 
+:class json-flt <super flt
+  cell bytes precision
+  :m :init ( n -- ) ( R: r -- ) super :init  precision ! ;m
+  :m :. precision @ set-precision super :. ;m
+;class
+: >json-flt ( n -- ) ( R: r -- ) heap> json-flt ;
+
+
 : (,) \ 0 {: j-str :}
       0 locals| j-str |
      num? if l> dup to j-str :@ 2dup >integer
 	             				   if nip nip >int j-str <free
-	                               else >float if >flt j-str <free
+	                               else ( adr len ) tuck >float if >json-flt j-str <free
 	                                           else abort" invalid number string"
 	                                           then
 	                               then l@ is-a pair if l> :! then l@ :add false to num?
@@ -300,7 +301,7 @@ dup :.
 
 : do-, ( c --)
     str? if c+ exit then drop
-	l :size 2 < if exit then \ do nothing if } or ] has already handled it 
+	lsize 2 < if exit then \ do nothing if } or ] has already handled it 
 	l@ is-a json-array 0= if false to str? then (,) ; 
 
 ',' ' do-, jt
@@ -397,7 +398,7 @@ j{ { "qz\u20ACBz": 10 } }j value j
    adr @ max-adr <
   while
   repeat l> 
-  l :size if l> :! then ;
+  lsize if l> :! then ;
 
 
 : refilling-parse ( -- c-addr u )
@@ -424,9 +425,10 @@ j{ { "qz\u20ACBz": 10 } }j value j
 
 
 : json>$ \ {: json -- str-obj :} 
-  locals| json |
+  \ locals| json |
+  >r
   0 0 >string dup
-  ( str str ) json :write 
+  ( str str ) r> :write 
 \  json <free  \ must free the json manually when desired
   ( str ) ;
 

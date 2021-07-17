@@ -4,34 +4,14 @@
 \ with no restrictions or source identification of any kind.
 \ Dec 11 2020 Douglas B. Hoffman
 \ dhoffman888@gmail.com
+\ moved l-stack to file stack.f \ jul 2021
+
 
 
 [undefined] floats [if]
 cr .( Floating Point is required) abort
 [then]
-
-[undefined] .l [if]
-20 array l
-: >l ( n -- ) \ push item on stack
-  l :add ;
-: l> ( -- n ) \ pop item from stack, last in first out
-  l :size 1- l :remove ;
-: .l l :. ;
-: l@ ( -- n ) l :last ; \ retrieve top stack item
-: l-clr l :clear ; \ resets stack to zero items
-[then]
-
-0 [if]
-l-clr ok
-4 >l 3 >l 2 >l 1 >l ok
-.l 
-0 4 
-1 3 
-2 2 
-3 1 ok
-[then]
-
-
+[undefined] >l [if] cr .( file stack.f required ) abort [then]
 
 \ remove the leading and trailing "'"s from string-objects created
 \ using the o{ ... } syntax
@@ -63,7 +43,7 @@ l-clr ok
        2drop list >l recurse
       repeat
     2dup s" }" compare
-      0= if l :size 0>
+      0= if lsize 0>
             if list l> :add  2drop refilling-parse-name exit
             else false
             then
@@ -113,7 +93,7 @@ l-clr ok
 	      then
 	 then
   repeat 2drop
-         l :size if l-clr
+         lsize if l-clr
                            true abort" unmatched {..} pair in list"
                         then 
   list ;
@@ -129,7 +109,7 @@ l-clr ok
        2drop list >l recurse
       repeat
     2dup s" }" compare
-      0= if l :size 0>
+      0= if lsize 0>
             if list l> :add  2drop refilling-parse-name exit
             else false
             then
@@ -179,7 +159,7 @@ l-clr ok
 	      then
 	 then
   repeat 2drop
-         l :size if l-clr
+         lsize if l-clr
                            true abort" unmatched {..} pair in list"
                         then 
   list ;

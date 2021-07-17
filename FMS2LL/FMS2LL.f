@@ -356,12 +356,16 @@ counter go counter - .  \ 5221 late binding to dict and embedded objects
 include /Users/doughoffman/FMS2-master/FMS2LL/ptr.f
 include /Users/doughoffman/FMS2-master/FMS2LL/utility-words.f
 include /Users/doughoffman/FMS2-master/FMS2LL/array.f
+
+\ abort
+
 include /Users/doughoffman/FMS2-master/FMS2LL/string.f
 include /Users/doughoffman/FMS2-master/FMS2LL/int.f
 include /Users/doughoffman/FMS2-master/FMS2LL/flt.f
 include /Users/doughoffman/FMS2-master/FMS2LL/file.f
 include /Users/doughoffman/FMS2-master/FMS2LL/farray.f
 include /Users/doughoffman/FMS2-master/FMS2LL/arrays.f 
+include /Users/doughoffman/FMS2-master/FMS2LL/stack.f 
 include /Users/doughoffman/FMS2-master/FMS2LL/objectArray.f 
 include /Users/doughoffman/FMS2-master/FMS2LL/json.f
 include /Users/doughoffman/FMS2-master/FMS2LL/hash-table.f
