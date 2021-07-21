@@ -1,6 +1,5 @@
 [undefined] >string [if] cr .( file string.f required ) abort [then]
 \ Feb 8, 2021 dbh  https://github.com/DouglasBHoffman/FMS2
-\ require <super object
 \ changed names of instance variables DATA and KEY
 
 \ eliminated need for 2nd extra stack
@@ -165,7 +164,7 @@ dup :.
 : >json-array heap> json-array ;
 
 
-:class bool <super object
+:class bool 
  1 bytes bdata
  :m :init ( b -- ) bdata c! ;m
  :m :! ( b --) bdata c! ;m
@@ -179,7 +178,7 @@ dup :.
 ;class
 : >bool ( b -- bool-obj) heap> bool ;
 
-:class null <super object
+:class null 
   :m :. ." null" ;m
   :m :write \ {: str -- :}
       \ locals| str |
@@ -188,7 +187,7 @@ dup :.
 ;class
 : >null ( -- null-obj) heap> null ;
 
-:class pair <super object
+:class pair 
   cell bytes pkey
   cell bytes val
   :m :init ( str-obj --) pkey ! s" <empty-val>" >json-string val ! ;m

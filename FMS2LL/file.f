@@ -6,12 +6,12 @@
 \ require <super declaration
 
 \ after a :read the file will be sent the :close message \ Dec 2020
-\ :read-line default max length is 500
 \ :write changed to a message
-
+\ :read-line default max length is 2000 \ jul 2021
+\ added method to set dflt-line-len
 [undefined] string [if] .( string.f required ) abort [then]
 
-:class file <super object  ( c-a u -- ) \ file name
+:class file   ( c-a u -- ) \ file name
   cell bytes id
   cell bytes name 
   cell bytes fam  \ file access method
@@ -33,7 +33,7 @@
    false open? c!
    r/w fam ! \ default fam is r/w
    0 0 heap> string buffer !
-   500 dflt-line-len !
+   2000 dflt-line-len !
    ;m
 
 :m :size ( -- u )

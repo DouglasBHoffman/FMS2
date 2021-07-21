@@ -2,12 +2,11 @@
 \ with no restrictions or source identification of any kind.
 \ Feb 8, 2021 Douglas B. Hoffman
 \ dhoffman888@gmail.com
-\ require <super declaration
 
 : integer>str ( n -- adr len) 
   s>d dup >r dabs <# #s r> sign #> ; 
 
-:class int <super object
+:class int 
   cell bytes idata 
  :m :init ( n -- ) idata ! ;m
  :m :! ( n -- )  idata ! ;m

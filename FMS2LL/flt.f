@@ -2,7 +2,6 @@
 \ with no restrictions or source identification of any kind.
 \ Feb 8, 2021 Douglas B. Hoffman
 \ dhoffman888@gmail.com
-\ require <super declaration
 \ changed instance variable DATA name to FDATA
 
 [undefined] floats [if] cr .( floating point required) abort [then]
@@ -16,7 +15,7 @@
         FSCALE F*
         F>D TUCK DABS <# DECIMALS 0 DO # LOOP [CHAR] . HOLD #S ROT SIGN #> ;
 
-:class flt <super object  
+:class flt   
   1 floats bytes fdata
  :m :init ( R: r -- ) fdata f! ;m
  :m :! ( R: r -- )  fdata f! ;m

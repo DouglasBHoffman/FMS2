@@ -4,7 +4,6 @@
 \ Feb 8, 2021 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
-\ require <super object
 
 [undefined] string [if] .( requires classes array and string to be loaded) abort [then]
 
@@ -14,7 +13,7 @@
 
 defer free-val
 
-:class hash-table-node <super object
+:class hash-table-node 
  cell bytes hash
  string tkey
  cell bytes nval
@@ -42,7 +41,7 @@ defer free-val
 
 
 \ Hash collisions are handled by separate chaining with head records in the bucket array.
-:class hash-table <super object
+:class hash-table 
  cell bytes table  \ will contain an array object \ array of pointers to the nodes 
  cell bytes #nodes \ number of nodes
  cell bytes load \ load factor times 100

@@ -13,7 +13,7 @@ Tree balancing has been added, in addition to making a tree class.
 [THEN]
 
 
-:class node <super object
+:class node 
    cell bytes left
    cell bytes right
    cell bytes nkey
@@ -31,7 +31,7 @@ Tree balancing has been added, in addition to making a tree class.
 
 
 
-:class btree <super object
+:class btree 
   cell bytes size
   cell bytes oc-key \ container for keys ordered-col \ ordered-col will be sorted
   cell bytes oc-info \ container for info ordered-col, ordered as per nkey oc

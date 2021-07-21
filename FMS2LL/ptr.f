@@ -3,9 +3,8 @@
 \ with no restrictions or source identification of any kind.
 \ Feb 8, 2021 Douglas B. Hoffman
 \ dhoffman888@gmail.com
-\ require <super declaration
 
-:class ptr <super object
+:class ptr 
  cell bytes data
  cell bytes len \ len, in bytes, of memory allocated
  :m :size ( -- n )  len @ ;m
