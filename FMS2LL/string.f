@@ -36,13 +36,14 @@
 \ flag=true  then do a case-insensitive search
 \ flag=false then do a case-sensitive   search
 
+
 defer lower
-[undefined] >lower [if]
-: >lower ( C -- c )
-    dup [char] A [ char Z 1+ ] literal within if
-        32 +
-    then ;
-[then] \ return lower-case character of c
+\ [undefined] >lower [if]
+\ : >lower ( C -- c )
+\    dup [char] A [ char Z 1+ ] literal within if
+\        32 +
+\    then ;
+\ [then] \ return lower-case character of c
 
 
 
@@ -148,11 +149,11 @@ defer lower
 : >upper ( char -- char') \ return upper-case character of char
   dup lowerCase? if 32 xor then ;
 
-: to-lower ( adr len -- ) \ convert entire string to lowercase in-place
-  over \ addr cnt addr
-  + swap  \ cnt+addr addr
-  ?do i c@ >lower i c!
-  loop ;
+\ : to-lower ( adr len -- ) \ convert entire string to lowercase in-place
+\  over \ addr cnt addr
+\  + swap  \ cnt+addr addr
+\  ?do i c@ >lower i c!
+\  loop ;
 
  :m :upper \ converts entire string to upper case
      get 
@@ -193,7 +194,7 @@ defer lower
      self :=subCI ;m
 
 : (search)1 ( addr len -- flag ) dup len @ end @ - > ;
-: str-obj ( addr len -- str-obj) heap> string 128 allocate throw ;
+: str-obj ( addr len -- str-obj delta-table ) heap> string 128 allocate throw ;
 : (search)2 ( -- len) data @ end @ + ( start-addr) len @ end @ - ( len) ;
 : (search)3 end @ + dup start ! over :size + end ! true ;
 

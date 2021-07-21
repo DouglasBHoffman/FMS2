@@ -5,7 +5,7 @@ decimal
 
 
 [undefined] cell [if] 1 cells constant cell [then]
-[undefined] place [if] : place 2dup 2>r 1+ swap move 2r> c! ; [then]
+[undefined] place [if] : place ( adr1 len1 adr2) 2dup 2>r 1+ swap move 2r> c! ; [then]
 [undefined] +order [if] : +order ( wid -- ) >r get-order r> swap 1+ set-order ;
 [then]
 
@@ -229,10 +229,36 @@ s" gforth" environment?
 
 [then]
 
+: >lower ( C -- c )
+    dup [char] A [ char Z 1+ ] literal within if
+        32 +
+    then ;
+
+: to-lower ( adr len -- ) \ convert entire string to lowercase in-place
+  over \ addr cnt addr
+  + swap  \ cnt+addr addr
+  ?do i c@ >lower i c!
+  loop ;
+
+\ : move$ ( src$ptr\dest$ptr --) \ copy src to dest, dest must be long enough
+\  over c@ 1+ move ;
+
+\ : do-scan ( $ptr -- $ptr ) \ always converts to lower case
+\  dup >in @ bl word rot move$ >in ! 
+\  dup count to-lower ;
+
+: pre-scan ( -- in adr len) >in @ bl word count ;
+: do-scan pre-scan pad place >in ! pad count to-lower ;
+
+: scanForSuper ( addr --- )
+  do-scan pad count s" <super" compare  \ addr $ptr flag
+  if s" <super object" evaluate then ;  
+
 
 : :class ( "name" -- addr) \ addr is passed to <super where the class name is stored at nfa
-  >in @ bl word count ( n c-adr len ) here over 1+ allot dup >r place >in !  
-   create immediate r> does> build ;
+  pre-scan ( in c-adr len ) here over 1+ allot dup >r place >in !  
+   create immediate r> 
+   scanForSuper does> build ;
 
 defer restore  ' restore-order is restore
 
@@ -285,7 +311,7 @@ defer restore  ' restore-order is restore
   postpone @ ' >body postpone literal postpone (is-a-kindOf)
   ; immediate
 
-cr here swap - . .( bytes)  \ 4485  SF 32-bit
+cr here swap - . .( bytes)  \ 4869  SF 32-bit
 
 [defined] >M4TH [if]
 : restore-MF ONLY FORTH DEFINITIONS >M4TH 0 to ^class ;
@@ -293,11 +319,11 @@ cr here swap - . .( bytes)  \ 4485  SF 32-bit
 [then]
 
 
-0 [if] \ test code
+0 [if] \ brief test code
 
 28 value x
 
-:class point <super object
+:class point 
   cell bytes x
   cell bytes y
   :m :init ( x y --) y ! x ! ;m
@@ -306,7 +332,7 @@ cr here swap - . .( bytes)  \ 4485  SF 32-bit
 
 10 20 point p \ messages to p will be early-bound
 
-:class rect <super object
+:class rect 
   point ul \ messages to ul and lr will be early-bound
   point lr
   :m :init ( x1 y1 x2 y2 --) lr :init ul :init ;m
@@ -352,13 +378,9 @@ counter go counter - .  \ 5221 late binding to dict and embedded objects
 [defined] 'SF [if]
   include /Users/doughoffman/Desktop/fpmathSF.f
     [then]
-\ /Users/doughoffman/FMS2-master/FMS2LL/FMS2LL.f
 include /Users/doughoffman/FMS2-master/FMS2LL/ptr.f
 include /Users/doughoffman/FMS2-master/FMS2LL/utility-words.f
 include /Users/doughoffman/FMS2-master/FMS2LL/array.f
-
-\ abort
-
 include /Users/doughoffman/FMS2-master/FMS2LL/string.f
 include /Users/doughoffman/FMS2-master/FMS2LL/int.f
 include /Users/doughoffman/FMS2-master/FMS2LL/flt.f
