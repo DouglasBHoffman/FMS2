@@ -1,4 +1,6 @@
-FMS is an object programming extension to ANS Forth. It is class based, single inheritance, uses Duck Typing, and explicit references to self.
+FMS2LL is an object programming extension to ANS Forth. It is class based, single inheritance, uses Duck Typing, and explicit references to self.
+
+FMSMI is a multiple-inheritance object programming extension to ANS Forth.
  
 Class based: The structure and behavior of an object are defined by a class, which is a definition or blueprint, of all objects of that specific type. 
 
