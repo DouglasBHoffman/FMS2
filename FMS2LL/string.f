@@ -6,6 +6,7 @@
 \ corrected check 12/9/2019
 \ changed to strict 0-127 ascii chars 1/3/2020
 \ corrected obscure problem with :split 4/1/2021
+\ fixed memory leak in :split 8/20/2021
 
 [undefined] ptr [if] .( file ptr.f required ) abort [then]
 [undefined] array [if] .( file array.f required ) abort [then]
@@ -313,6 +314,7 @@ defer lower
      if 1 obj :start +! then
     obj :size obj :end !
     obj :@sub heap> string arr :add
+    obj <free  \ free string-obj from :remove-extra-chars  dbh 8/20/2021
    arr ;m
 
 ;class
@@ -323,6 +325,12 @@ defer lower
 \ make a string in the heap
 : >string ( adr len -- obj ) heap> string ; 
 
+  : <freeAll$ \ { obj -- }
+  locals| obj |
+  begin
+   obj :each
+  while
+  repeat obj <free ;
 
 
 \ Search for text1 starting at END.
@@ -425,5 +433,5 @@ s" 0082" hex evaluate decimal . 130 ok
 
 j{ "qz\u00E2\u0082\u00AC": 10 }j 
 
-
+<freeAll
 [then]
