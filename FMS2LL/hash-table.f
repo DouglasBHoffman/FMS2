@@ -4,39 +4,38 @@
 \ Feb 8, 2021 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
+\ fixed :init bug for tkey that only appeaared in SF and Gforth
 
 [undefined] string [if] .( requires classes array and string to be loaded) abort [then]
 
-:class ht-array <super array
- :m :free data @ free throw ;m
-;class
 
 defer free-val
 
 :class hash-table-node 
  cell bytes hash
- string tkey
+ cell bytes tkey \ tkey will be a heap string object
  cell bytes nval
  cell bytes next
- :m :init 0 0 tkey :init ;m
+ :m :init
+     0 0 >string tkey ! 
+     ;m
  :m init ( nval kaddr klen -- ) \ Initialise the node with the val, tkey
-     tkey :!  nval !  0 next ! ;m
-\ :m :free tkey :free ;m \ ###
- :m :free tkey :free nval @ free-val ;m \ only use nval @ <freeAll when nval is a heap allocated array
+     tkey @ :!  nval !  0 next ! ;m
+ :m :free tkey @ :free nval @ free-val ;m \ only use nval @ <freeAll when nval is a heap allocated array
  :m :key@ ( -- obj ) \ will be a string object
-     tkey ;m
+     tkey @ ;m
   :m :val@ ( -- nval ) nval @ ;m
  :m :val! ( -- nval ) nval ! ;m
  :m :next ( -- next-node ) next @ ;m
  :m :next! ( next-node -- ) next ! ;m
  :m :@ ( -- hash ) hash @ ;m
  :m :! ( -- hash ) hash ! ;m
-\ :m :d \ dump
-\    cr ." hash " hash ?
-\    cr ." key " tkey :.
-\    cr ." nval " nval ?
-\    cr ." next " next ?
-\    cr ;m
+ :m :d \ dump
+    cr ." hash " hash ?
+    cr ." key " tkey @ :.
+    cr ." nval " nval ?
+    cr ." next " next ?
+    cr ;m
 ;class
 
 
@@ -50,7 +49,7 @@ defer free-val
  cell bytes last-node \ required for subclass hash-table-m
  cell bytes h.current-idx \ for :each
  
- :m :init heap> ht-array table !
+ :m :init >array table !
     0 #nodes !
     100 load !
     3 0 do 0 table @ :add loop \ initialize with room for 3 nodes 
@@ -143,9 +142,10 @@ defer free-val
 \ new-node is a normal colon definition but is private to this class
 : new-node ( hash val -- new-node )
    1 #nodes +! \ increment #nodes
-   heap> hash-table-node >r
+   heap> hash-table-node >r 
    ( val ) key-addr @ key-len @ r@ init
-   ( hash ) r@ :! r> ;
+   ( hash ) r@ :! r>
+   ;
 
 :m :search ( node idx hash val -- true )
       nip nip 
@@ -171,14 +171,16 @@ defer free-val
         :next dup 0<>
       while
       repeat drop
-       \ end of linked-list, add new node there
-       hsh val new-node  node :next!
+      \ end of linked-list, add new node there
+       hsh val new-node  
+       node :next!  
     then
        \ lastly test for need to increase table size
        \ and do it if required
        #nodes @ table @ :size load @ 100 */ >
-       if table @ :size 2* 1+ ( new-size )
-          heap> ht-array ( new-size new-table )
+       if  
+          table @ :size 2* 1+ ( new-size )
+          >array ( new-size new-table )
           2dup to new-table 0 ?do 0 new-table :add loop
           transfer then
        ;m 
