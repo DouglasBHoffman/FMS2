@@ -9,7 +9,7 @@ What is different about miniFMS from other minimalist ANS Forth object extention
    This avoids the two-steo process of a) instantiate the object, b) initialize it.
 
 3. Defining a message name, associating the method code with that name, and if necessary
-   automatically over riding the superclass method: all done in one step instead of three.
+   (automatically) over riding the superclass method: all done in one step instead of three.
 
 4. No need to juggle the current object using, for example the return stack. It is
    cumbersome (and ugly IMO) to have to preface the use of an instance variable with
