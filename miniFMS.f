@@ -51,9 +51,9 @@ What is different about miniFMS from other minimalist ANS Forth object extention
 : var ( n 'name' -- ) ^class dfa dup @ (ivar) +! ;
 create object classSize dup allot object swap erase  cell object dfa !
 object to ^class :m :init ;m
-: (pre) ( cls flag -- cls n ) dup dfa @ ;
+: (pre) ( cls -- cls n ) dup dfa @ ;
 : (post) ( ...cls a -- obj ) tuck ! dup >r :init r> ;
-: >dict ( cls -- obj ) (pre) ( align ) here swap allot (post) ;
+: >dict ( cls -- obj ) (pre) here swap allot (post) ;
 : .. ( obj 'name' -- adr) ' >body @ + ;
 
 
