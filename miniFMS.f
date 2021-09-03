@@ -19,7 +19,7 @@ What is different about miniFMS from other minimalist ANS Forth object extention
    to it, as opposed to just crashing.
 
 Note: No wordlists are used and there is direct access to instance variables 
-      (no accessor methods needed). But this is common for a minimalist extension).
+      (no accessor methods needed). But this is common for a minimalist extension.
 
 [then]
 
