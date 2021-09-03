@@ -15,7 +15,7 @@ What is different about miniFMS from other minimalist ANS Forth object extention
    cumbersome (and ugly IMO) to have to preface each(most) use of an instance variable with
    something like R@ or R>.
 
-5. A "METHOD?" error message is presented if an object does recognize a message sent
+5. A "METHOD?" error message is presented if an object does not recognize a message sent
    to it, as opposed to just crashing.
 
 Note: No wordlists are used and there is direct access to instance variables 
