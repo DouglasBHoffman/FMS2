@@ -23,22 +23,20 @@ Note: No wordlists are used and there is direct access to instance variables
 
 [then]
 
-\ Last Revision:  2 Sep 2021  17:45:20  dbh
-
+\ Last Revision:  4 Sep 2021  04:30:19  dbh
 
 0 value self
-: dfa ( cls -- a) 8 cells + ; 
+: dfa ( cls -- a) 8 cells + ;
 : _mfa ( adr -- ofs) dup >r 2/ 2/ r@ xor 2/ 2/ r> xor 7 and cells ;
 : mfa ( sel cls -- sel mfa) over _mfa + ;
 : fm ( sel mfa -- xt) begin @ dup while 2dup cell+ @ = 
   if 2 cells + nip @ exit then repeat -1 abort" method?" ;
 : class ( supClass 'name' -- cls) create here >r
   9 cells dup allot r@ swap move r> ;
-: ?isSel ( 'name' -- sel t | f) bl word find
-  if >body dup 1+ c@ 254 = if true exit then then drop false ;
-: ms ( 'name' -- sel ) create here dup _mfa c, 254 c,
+: makeSel ( 'name' -- sel ) create here dup _mfa c, 254 c,
   does> over @ over c@ + fm self >r swap to self execute r> to self ;
-: sel ( "name" -- sel ) >in @ ?isSel if nip else >in ! ms then ;
+: sel ( 'name' -- sel ) >in @ bl word find if >body dup 1+ c@ 254 =
+   if nip exit then then drop >in ! makeSel ;  
 : :m ( cls 'name' -- a xt) sel over mfa
    here over @ , swap !  , here 0 , :noname ;
 : ;m ( a xt -- ) postpone ; swap ! ; immediate
@@ -73,13 +71,12 @@ drop
 
 \ Create and draw the buttons:
 
-s" normal button" button new constant foo  \ implicit :init
+s" normal button" button new constant foo 
 s" bold button" bold-button new constant bar
 1 bar .. y !
 page
 foo draw
 bar draw
-
 
 [then]
 
@@ -111,7 +108,7 @@ drop
 8190 sieve new constant s
 s prime \ => 1899
 : go 10000 0 do s prime loop ;
-ticks go ticks swap - . \ => 780 msec  vfx
+\ ticks go ticks swap - . \ => 780 msec  vfx
 
 [then]
 
@@ -132,7 +129,7 @@ drop
 8190 sieve new constant s
 s prime \ => 1899
 : go 10000 0 do s prime loop ;
-ticks go ticks swap - . \ => 1610 msec  vfx
+\ ticks go ticks swap - . \ => 1600 msec  vfx
 
 [then]
 
