@@ -18,6 +18,8 @@ What is different about miniFMS from other minimalist ANS Forth object extention
 5. A "METHOD?" error message is presented if an object does not recognize a message sent
    to it, as opposed to just crashing.
 
+6. Adding a way to allocate objects is trivial.
+
 Note: No wordlists are used and there is direct access to instance variables 
       (no accessor methods needed). But this is common for a minimalist extension.
 
