@@ -15,17 +15,22 @@ What is different about miniFMS from other minimalist ANS Forth object extention
    cumbersome (and ugly IMO) to have to preface each(most) use of an instance variable with
    something like R@ or R>.
 
-5. A "METHOD?" error message is presented if an object does not recognize a message sent
+5. New methods can be defined for any alread-defined class. Alread-instantiated objects
+   will respond to these new methods.
+
+6. A "METHOD?" error message is presented if an object does not recognize a message sent
    to it, as opposed to just crashing.
 
-6. Adding a way to allocate objects is trivial.
+7. Adding a way to allocate objects is trivial.
 
 Note: No wordlists are used and there is direct access to instance variables 
       (no accessor methods needed). But this is common for a minimalist extension.
 
+For a full-featured OOP with some library code see: https://github.com/DouglasBHoffman/FMS2
+
 [then]
 
-\ Last Revision:  4 Sep 2021  04:30:19  dbh
+\ Last Revision:  8 Oct 2021  04:30:19  dbh
 
 0 value self
 : dfa ( cls -- a) 8 cells + ;
@@ -79,8 +84,21 @@ s" bold button" bold-button new constant bar
 page
 foo draw
 bar draw
+cr
 
-\ another example
+\ now create a new method for class button
+button :m :. x ? y ? ;m
+drop
+
+\ the new method will work on button objects (even those already instantiated)
+foo :. \ => 0 0 
+
+\ but not on subclass objects for classes already defined
+bar :. \ => method?
+
+[then]
+
+0 [if] \ another example
 \ note re-use of draw but there is no inheritance relationship
 object class point  
   cell var x
