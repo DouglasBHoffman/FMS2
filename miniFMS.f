@@ -53,7 +53,7 @@ For a full-featured OOP with some library code see: https://github.com/DouglasBH
 create object 9 cells dup allot object swap erase  cell object dfa !
 object :m :init ;m drop
 : new ( cls -- obj) dup dfa @ here swap allot tuck ! dup >r :init r> ;
-: .. ( obj 'name' -- adr) ' >body @ + ;
+
 
 
 0 [if] \ usage example
@@ -80,7 +80,7 @@ drop
 
 s" normal button" button new constant foo 
 s" bold button" bold-button new constant bar
-1 bar .. y !
+1 bar to self y !
 page
 foo draw
 bar draw
@@ -104,7 +104,6 @@ object class point
   cell var x
   cell var y
  :m p! ( x y -- ) y ! x ! ;m
- :m p@ ( -- x y ) x @ y @ ;m
  :m draw x ? y ? ;m
  :m :init ( x y -- ) self p! ;m  \ late bind
 \ :m :init ( x y -- ) [ point :: p! ] ;m \ alternative, uses early bind
@@ -114,7 +113,7 @@ drop
 p1 draw cr
 foo draw  \ draw still works on foo and bar
 page bar draw 
-: test 3 4 p1 p! p1 draw p1 p@ + . ;
+: test 3 4 p1 p! p1 draw p1 to self x @ y @ + . ;
 test
 \ => 3 4 7
 
