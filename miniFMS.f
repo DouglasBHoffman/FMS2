@@ -24,7 +24,8 @@ What is different about miniFMS from other minimalist ANS Forth object extention
 7. Adding a way to allocate objects is trivial.
 
 Note: No wordlists are used and there is direct access to instance variables 
-      (no accessor methods needed). But this is common for a minimalist extension.
+      (no accessor methods needed) provided they are not shadowed. 
+      But this is common for a minimalist extension.
 
 For a full-featured OOP with some library code see: https://github.com/DouglasBHoffman/FMS2
 
@@ -53,7 +54,6 @@ For a full-featured OOP with some library code see: https://github.com/DouglasBH
 create object 9 cells dup allot object swap erase  cell object dfa !
 object :m :init ;m drop
 : new ( cls -- obj) dup dfa @ here swap allot tuck ! dup >r :init r> ;
-
 
 
 0 [if] \ usage example
@@ -101,10 +101,10 @@ bar :. \ => method?
 0 [if] \ another example
 \ note re-use of draw but there is no inheritance relationship
 object class point  
-  cell var x
-  cell var y
- :m p! ( x y -- ) y ! x ! ;m
- :m draw x ? y ? ;m
+  cell var px
+  cell var py
+ :m p! ( x y -- ) py ! px ! ;m
+ :m draw px ? py ? ;m
  :m :init ( x y -- ) self p! ;m  \ late bind
 \ :m :init ( x y -- ) [ point :: p! ] ;m \ alternative, uses early bind
 drop
@@ -113,7 +113,7 @@ drop
 p1 draw cr
 foo draw  \ draw still works on foo and bar
 page bar draw 
-: test 3 4 p1 p! p1 draw p1 to self x @ y @ + . ;
+: test 3 4 p1 p! p1 draw p1 to self px @ py @ + . ;
 test
 \ => 3 4 7
 
