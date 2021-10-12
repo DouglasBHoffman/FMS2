@@ -198,9 +198,6 @@ create meta classSize dup allot meta swap erase  cell meta dfa !
 
 0 value (dict)-xt \ will contain xt for (dict)
 
-s" gforth" environment? 
-0= [if] \ can't get early binding to dict obj to work on gforth 0.7.3
-
 : ?execute ( obj --) 
      >in @ ?isSel
      if nip ( obj sel )
@@ -212,22 +209,10 @@ s" gforth" environment?
 
 : build ( class -- )
   ^class
-  if embed-obj \ inside a class definition, so we are building an embedded object as ivar declaration
-  else \ outside a class definition, so instantiate a new named dictionary object
+  if embed-obj exit then \ inside a class definition, so we are building an embedded object as ivar declaration
+   \ outside a class definition, so instantiate a new named dictionary object
     create immediate (dict)-xt execute drop
-    does> state @ if ?execute then
-  then ; 
-
-[else]
-
-: build ( class -- )
-  ^class
-  if embed-obj \ inside a class definition, so we are building an embedded object as ivar declaration
-  else \ outside a class definition, so instantiate a new named dictionary object
-    create (dict)-xt execute drop
-  then ; 
-
-[then]
+    does> state @ if ?execute then ; 
 
 : >lower ( C -- c )
     dup [char] A [ char Z 1+ ] literal within if
