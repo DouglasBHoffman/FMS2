@@ -1,4 +1,9 @@
-\ Last Revision: 29 Jun 2021  05:52:34  dbh
+\ This software is free for use and modification by anyone for any purpose
+\ with no restrictions or source identification of any kind.
+\ Douglas B. Hoffman  dhoffman888@gmail.com
+
+\ Last Revision: 19 Oct 2021  07:39:40  dbh
+\ added early binding via message-to-class
 
 
 decimal
@@ -11,7 +16,7 @@ decimal
 
 here
 
-\ include /Users/doughoffman/Desktop/FMS2LL/mem.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/mem.f
 
 0 value dflt-cur
 get-current to dflt-cur
@@ -117,7 +122,7 @@ create meta classSize dup allot meta swap erase  cell meta dfa !
   if >body dup 1+ c@ 254 = if ( sel ) true exit then
   then drop false ;
 
-: ex-meth self >r swap to self execute r> to self ;
+: ex-meth ( obj method-xt ) self >r swap to self execute r> to self ;
 
 : make-selector ( 'name' -- sel )
   get-current
@@ -154,6 +159,7 @@ create meta classSize dup allot meta swap erase  cell meta dfa !
 
 : super ( 'name' -- ) ' >body ^class sfa @ mfa fm compile, ; immediate
 : eself ( 'name' --)  ' >body ^class       mfa fm compile, ; immediate
+
 
 \ the action of an instance variable is to return its address
 \ which is the address of the object, self, plus the offset
@@ -196,7 +202,10 @@ create meta classSize dup allot meta swap erase  cell meta dfa !
 : setup-eos ( obj -- )
   dup @ ( obj class ) (setup-eos)  ;
 
-0 value (dict)-xt \ will contain xt for (dict)
+\ force an early bind in a colon definition 
+\ : <- ( obj 'class-name' 'message-name' ) ' >body ( ^cls) ' >body ( sel) 
+\  swap mfa fm postpone literal postpone ex-meth ;  immediate 
+
 
 : ?execute ( obj --) 
      >in @ ?isSel
@@ -204,19 +213,21 @@ create meta classSize dup allot meta swap erase  cell meta dfa !
         over @ ( obj sel ^class ) mfa fm swap ( obj xt )
         postpone literal postpone literal postpone ex-meth
      else >in !
-     then
-  ;
+     then ;
 
-: build ( class -- )
+
+0 value (dict)-xt \ will contain xt for (dict)
+
+: build ( class -- ) \ Last Revision: 12 Oct 2021  10:44:54  dbh fixed
   ^class
   if embed-obj exit then \ inside a class definition, so we are building an embedded object as ivar declaration
-   \ outside a class definition, so instantiate a new named dictionary object
+    \ outside a class definition, so instantiate a new named dictionary object
     create immediate (dict)-xt execute drop
-    does> state @ if ?execute then ; 
+    does> state @ if ?execute then ;
 
 : >lower ( C -- c )
     dup [char] A [ char Z 1+ ] literal within if
-        32 +
+        32 or
     then ;
 
 : to-lower ( adr len -- ) \ convert entire string to lowercase in-place
@@ -225,25 +236,38 @@ create meta classSize dup allot meta swap erase  cell meta dfa !
   ?do i c@ >lower i c!
   loop ;
 
-\ : move$ ( src$ptr\dest$ptr --) \ copy src to dest, dest must be long enough
-\  over c@ 1+ move ;
-
-\ : do-scan ( $ptr -- $ptr ) \ always converts to lower case
-\  dup >in @ bl word rot move$ >in ! 
-\  dup count to-lower ;
-
 : pre-scan ( -- in adr len) >in @ bl word count ;
-: do-scan pre-scan pad place >in ! pad count to-lower ;
+: post-scan ( in adr1 cnt adr2 -- ) place >in ! ;
+: do-scan pre-scan pad post-scan pad count to-lower ;
 
 : scanForSuper ( addr --- )
   do-scan pad count s" <super" compare  \ addr $ptr flag
   if s" <super object" evaluate then ;  
 
+0 [if] 
+: :class ( "name" -- addr) \ addr is passed to <super where the class name is stored at nfa
+  pre-scan ( in c-adr len ) here over 1+ allot dup >r post-scan  
+   create immediate r> 
+   scanForSuper 
+   does> build ;
+[then]
+
+: early-bind ( sel cls -- )
+   mfa fm postpone literal postpone ex-meth ; 
 
 : :class ( "name" -- addr) \ addr is passed to <super where the class name is stored at nfa
-  pre-scan ( in c-adr len ) here over 1+ allot dup >r place >in !  
+  pre-scan ( in c-adr len ) here over 1+ allot dup >r post-scan  
    create immediate r> 
-   scanForSuper does> build ;
+   scanForSuper 
+   does> ( ^class ) >r
+   >in @ ?isSel
+   if
+     \ classname is followed by a message, so early bind to whatever object is on the stack
+     ( in sel ) nip r> ( sel cls ) early-bind 
+   else
+     >in ! 
+     r> build
+   then ;
 
 defer restore  ' restore-order is restore
 
@@ -280,7 +304,7 @@ defer restore  ' restore-order is restore
 : <free  ( heap-obj --) dup :free free throw ;
 
 
-\ is-a is compile-ony
+\ is-a is compile-time only
 : is-a ( obj "classname" -- flag ) 
   postpone @ ' >body postpone literal postpone = ; immediate
 
@@ -291,12 +315,12 @@ defer restore  ' restore-order is restore
     sfa @ dup ['] object >body = if 2drop false exit then
   again ;
 
-\ is-a-kindOf is compile-ony
+\ is-a-kindOf is compile-time only
 : is-a-kindOf ( obj "classname" -- flag ) 
   postpone @ ' >body postpone literal postpone (is-a-kindOf)
   ; immediate
 
-cr here swap - . .( bytes)  \ 4869  SF 32-bit
+cr here swap - . .( bytes)  \ 4885  SF 32-bit
 
 [defined] >M4TH [if]
 : restore-MF ONLY FORTH DEFINITIONS >M4TH 0 to ^class ;
@@ -330,24 +354,32 @@ cr here swap - . .( bytes)  \ 4869  SF 32-bit
   cell bytes ul \ messages to ul @ and lr @ will be late-bound
   cell bytes lr
   :m :init ( x1 y1 x2 y2 --) dict> point lr !  dict> point ul ! ;m
-  :m :get ( -- x1 y1 x2 y2 ) ul @ :get lr @ :get ;m
+  :m :get ( -- x1 y1 x2 y2 ) ul @ point :get lr @ point :get ;m
 ;class
 
-: make-point dict> point ;
-: make-rect dict> rect ;
-30 50 make-point constant p \ messages to p and r will be late-bound
-10 20 30 40 make-rect constant r 
+: make-point heap> point ;
+: make-rect heap> rect ;
+30 50 make-point value p \ messages to p and r will be late-bound
+10 20 30 40 make-rect value r 
+
+: test p <- point :get  r <- rect :get .s ;
+: test2 p <- point :get ;
+: test3 p point :get  r rect :get .s ;
 
 : go 90000000 0 do p :get 2drop r :get 2drop 2drop loop ;
+: go2 90000000 0 do p <- point :get 2drop r <- rect :get 2drop 2drop loop ;
+: go3 90000000 0 do p point :get 2drop  r rect :get 2drop 2drop loop ;
  
 \ SF
 counter go counter - .  \ 1472 early binding to dict and embedded objects
 counter go counter - .  \ 3736 late binding to dict objects, early binding to embedded objects
 counter go counter - .  \ 5221 late binding to dict and embedded objects
 
+counter go2 counter - . \ 1518 forced early binding using <-
+counter go3 counter - . \ 1591 forced early binding using <classname>
 [then]
 
--1 [if]
+0 [if]
 
 [defined] VFXForth [if]
 
@@ -362,24 +394,25 @@ counter go counter - .  \ 5221 late binding to dict and embedded objects
 				   [then]
 [defined] 'SF [if]
   include /Users/doughoffman/Desktop/fpmathSF.f
+\  include /Users/doughoffman/SwiftForth/lib/options/quotations.f
     [then]
 include /Users/doughoffman/FMS2-master/FMS2LL/ptr.f
-include /Users/doughoffman/FMS2-master/FMS2LL/utility-words.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/utility-words.f
 include /Users/doughoffman/FMS2-master/FMS2LL/array.f
-include /Users/doughoffman/FMS2-master/FMS2LL/string.f
-include /Users/doughoffman/FMS2-master/FMS2LL/int.f
-include /Users/doughoffman/FMS2-master/FMS2LL/flt.f
-include /Users/doughoffman/FMS2-master/FMS2LL/file.f
-include /Users/doughoffman/FMS2-master/FMS2LL/farray.f
-include /Users/doughoffman/FMS2-master/FMS2LL/arrays.f 
-include /Users/doughoffman/FMS2-master/FMS2LL/stack.f 
-include /Users/doughoffman/FMS2-master/FMS2LL/objectArray.f 
-include /Users/doughoffman/FMS2-master/FMS2LL/json.f
-include /Users/doughoffman/FMS2-master/FMS2LL/hash-table.f
-include /Users/doughoffman/FMS2-master/FMS2LL/hash-table-m.f
-include /Users/doughoffman/FMS2-master/FMS2LL/btree.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/string.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/int.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/flt.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/file.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/farray.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/arrays.f 
+\ include /Users/doughoffman/FMS2-master/FMS2LL/stack.f 
+\ include /Users/doughoffman/FMS2-master/FMS2LL/objectArray.f 
+\ include /Users/doughoffman/FMS2-master/FMS2LL/json.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/hash-table.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/hash-table-m.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/btree.f
 
 \ optional testing routines
-include /Users/doughoffman/FMS2-master/FMS2LL/FMS2Tester.f
+\ include /Users/doughoffman/FMS2-master/FMS2LL/FMS2Tester.f
 
 [then]
