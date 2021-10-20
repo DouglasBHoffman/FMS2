@@ -4,13 +4,14 @@
 \ with no restrictions or source identification of any kind.
 \ Douglas B. Hoffman  dhoffman888@gmail.com
 
-\ Last Revision: 19 Oct 2021  07:39:40  dbh
+\ Last Revision: 20 Oct 2021  07:39:40  dbh
 \ added early binding via message-to-class
+\ fixed early-bind to handle case where class is not done compiling
 
 [defined] >M4TH [if]
 ONLY FORTH DEFINITIONS
 >M4TH
-traceon debug off 
+traceoff debug off 
 anew --fms--
 [then]
 
@@ -26,12 +27,12 @@ anew --fms--
 
 
 
-here
+\ here
 decimal
 
 \ *** BEGIN FMS2 CODE ***
 
-true constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
+0 constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
 
 0 value dflt-cur
 get-current to dflt-cur
@@ -59,7 +60,8 @@ message-wid +order \ make it the first wordlist to be searched, always
 : wida ( cls -- addr) 3 cells + ; \ wordlisi id address
 : ifa  ( cls -- addr) 4 cells + ; \ embedded object instance variables
 : cna  ( cls -- addr) 5 cells + ; \ class name address
-6 cells constant classSize
+: dna  ( cls -- addr) 6 cells + ; \ is class done compiling? address
+7 cells constant classSize
 
 0 value hptr
 0 value hptrSz
@@ -88,17 +90,13 @@ create meta classSize allot  meta classSize erase  here 0 , meta !
     dup wida @ +order sfa @ 
   repeat drop ;
 
-\ : <super ( addr 'name' -- wid1 wid2 ...) locals| addr | here dup >r to ^class 
-\  classSize allot ' >body dup r@ classSize move r@ sfa !
-\  wordlist dup set-current r@ wida ! get-order r> fms-set-order
-\  StblSz initHtbl
-\  addr ^class cna ! ;
-
 : <super ( addr 'name' -- ) locals| addr | here dup >r to ^class 
   classSize allot ' >body dup r@ classSize move r@ sfa !
   wordlist dup set-current r@ wida ! r> fms-set-order
   StblSz initHtbl
-  addr ^class cna ! ;
+  addr ^class cna !
+  false ^class dna ! \ mark class as not done compiling (for use by early-bind)
+  ;
 
 \ return the class of any object
 : >class ( obj -- cls) @ cell - @ ; 
@@ -107,7 +105,6 @@ create meta classSize allot  meta classSize erase  here 0 , meta !
   does> ( -- addr) @ postpone literal postpone self postpone + ;
   
 : bytes ( n 'name' --) ^class dfa dup @ (ivar) +! ;
-
 
 : ex-meth ( obj xt -- ) self >r swap to self execute r> to self ;
 
@@ -295,7 +292,14 @@ fmsCheck? [if]
  [then]
 
 : early-bind ( sel ^cls -- )
-   @ >xt postpone literal postpone ex-meth ; 
+     dup dna @
+     if
+        \ class is done compiling so use completed dispatch table
+        @ >xt postpone literal postpone ex-meth
+     else 
+        \ class is still compiling, so use heap table or super table
+        drop dup ( sel sel ) hptr + @ ?dup if nip nip else Stbl >xt then
+     then ; 
 
 : :class ( "name" -- addr) \ name of the new class being defined
     \ addr is passed to <super where the class name is stored at cfa
@@ -327,6 +331,7 @@ defer restore  ' restore-order is restore
   ^class , here ^class !
   hptrSz allot buildDtbl  
   hptr free throw
+  true ^class dna ! \ mark class as done compiling ( for early-bind )
   restore ;
 
 
@@ -386,7 +391,7 @@ defer restore  ' restore-order is restore
 
 \ *** END FMS2 CODE ***
 
-here swap - cr .  .( bytes used ) \ 7454 bytes on VFX Forth for OS X IA32 Version: 4.72 (32-bit)
+\ here swap - cr .  .( bytes used ) \ 7454 bytes on VFX Forth for OS X IA32 Version: 4.72 (32-bit)
                                   \ 5674 bytes on SwiftForth i386-macOS 3.10.5 15-Dec-2020 (32-bit)
 
 
