@@ -31,7 +31,7 @@ decimal
 
 \ *** BEGIN FMS2 CODE ***
 
-0 constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
+true constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
 
 0 value dflt-cur
 get-current to dflt-cur
