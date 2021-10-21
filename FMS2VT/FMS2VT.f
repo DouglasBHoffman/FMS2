@@ -4,7 +4,7 @@
 \ with no restrictions or source identification of any kind.
 \ Douglas B. Hoffman  dhoffman888@gmail.com
 
-\ Last Revision: 21 Oct 2021  07:39:40  dbh
+\ Last Revision: 21 Oct 2021  08:14:56  dbh
 \ removed early binding via message-to-class, too complex, little need
 
 [defined] >M4TH [if]
@@ -15,7 +15,7 @@ anew --fms--
 [then]
 
 \ optional unFREEd memory checker, for development
-\ include /Users/doughoffman/Desktop/FMS2a/mem.f
+\ include mem.f
 
 [undefined] cell [if] 1 cells constant cell [then]
 [undefined] place [if] : place 2dup 2>r 1+ swap move 2r> c! ; [then]
@@ -59,7 +59,6 @@ message-wid +order \ make it the first wordlist to be searched, always
 : wida ( cls -- addr) 3 cells + ; \ wordlisi id address
 : ifa  ( cls -- addr) 4 cells + ; \ embedded object instance variables
 : cna  ( cls -- addr) 5 cells + ; \ class name address
-\ : dna  ( cls -- addr) 6 cells + ; \ is class done compiling? address
 6 cells constant classSize
 
 0 value hptr
@@ -94,7 +93,6 @@ create meta classSize allot  meta classSize erase  here 0 , meta !
   wordlist dup set-current r@ wida ! r> fms-set-order
   StblSz initHtbl
   addr ^class cna !
-\  false ^class dna ! \ mark class as not done compiling (for use by early-bind)
   ;
 
 \ return the class of any object
@@ -238,14 +236,6 @@ fmsCheck? [if]
 
 : ex-meth2 ( xt obj  -- ) self >r to self execute r> to self ;
 
-\ the following does not work
-\ force an early bind in a colon definition 
-\ : <- ( obj 'class-name' 'message-name' ) ' >body @ ( ^dspch) ' >body @ ( sel) 
-\   >xt postpone literal postpone ex-meth ;  immediate 
-
-
-\ : ex-meth ( obj xt -- ) self >r swap to self execute r> to self ;
-
 : ?execute ( obj --) 
      ?isSel \ is the next word a selector?
      if ( obj table-offset ) \ if yes early bind to it
@@ -333,7 +323,6 @@ defer restore  ' restore-order is restore
   ^class , here ^class !
   hptrSz allot buildDtbl  
   hptr free throw
-\  true ^class dna ! \ mark class as done compiling ( for early-bind )
   restore ;
 
 
