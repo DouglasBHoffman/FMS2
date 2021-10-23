@@ -4,8 +4,9 @@
 \ with no restrictions or source identification of any kind.
 \ Douglas B. Hoffman  dhoffman888@gmail.com
 
-\ Last Revision: 21 Oct 2021  08:14:56  dbh
-\ removed early binding via message-to-class, too complex, little need
+\ Last Revision: 23 Oct 2021  07:36:25  dbh
+\ put back early binding via message-to-class
+\ Removed special wordlist for selectors
 
 [defined] >M4TH [if]
 ONLY FORTH DEFINITIONS
@@ -19,7 +20,6 @@ anew --fms--
 
 [undefined] cell [if] 1 cells constant cell [then]
 [undefined] place [if] : place 2dup 2>r 1+ swap move 2r> c! ; [then]
-
 [undefined] +order [if]
  : +order ( wid -- ) >r get-order r> swap 1+ set-order ;
 [then]
@@ -40,18 +40,11 @@ create order-list 6 cells allot
 : save-order get-order dup 1+ 0 do order-list i cells + ! loop ;
 save-order
 
-\ We use message-wid wordlist to record and identify all messages during class creation. 
-\ But the message definition used for actual message sends will be in the dflt-cur
-\ wordlist. This way we can always identify message names that may conflict with
-\ other definitions.
-wordlist constant message-wid  
-message-wid +order \ make it the first wordlist to be searched, always
-
 0 value ^class
 
 : restore-order
   0 order-list @ do order-list i cells + @ -1 +loop set-order
-  message-wid +order dflt-cur set-current 0 to ^class ;
+  dflt-cur set-current 0 to ^class ;
 
 0 value self
 : dfa  ( cls -- addr) 1 cells + ; \ data field address
@@ -59,7 +52,8 @@ message-wid +order \ make it the first wordlist to be searched, always
 : wida ( cls -- addr) 3 cells + ; \ wordlisi id address
 : ifa  ( cls -- addr) 4 cells + ; \ embedded object instance variables
 : cna  ( cls -- addr) 5 cells + ; \ class name address
-6 cells constant classSize
+: dna  ( cls -- addr) 6 cells + ; \ ### is class done compiling? address
+7 cells constant classSize \ ###
 
 0 value hptr
 0 value hptrSz
@@ -93,6 +87,7 @@ create meta classSize allot  meta classSize erase  here 0 , meta !
   wordlist dup set-current r@ wida ! r> fms-set-order
   StblSz initHtbl
   addr ^class cna !
+  false ^class dna ! \ ### mark class as not done compiling (for use by early-bind)
   ;
 
 \ return the class of any object
@@ -103,14 +98,11 @@ create meta classSize allot  meta classSize erase  here 0 , meta !
   
 : bytes ( n 'name' --) ^class dfa dup @ (ivar) +! ;
 
-: ex-meth ( obj xt -- ) self >r swap to self execute r> to self ;
-
 : ?isSel ( "<name>" -- table-offset t | f) 
                  \ selector-ID = table-offset
-  >in @ bl word count message-wid search-wordlist
-  if ( in xt ) nip >body ( addr ) @ true exit 
-  then >in ! false ;
-
+  bl word find
+  if >body ( addr ) dup cell+ c@ 254 = if @ true else drop false then exit 
+  then drop false ;
 
 : not-understood? ( flag -- ) abort" message not understood" ;
 
@@ -122,7 +114,7 @@ fmsCheck? [if]
 [then]
 
 : eself ( "<messageName>" -- ) \ force early bind to self 
-  ?isSel if  \ followed by message name, so early bind to it
+  ?isSel if  \ followed by a normal message name, so early bind to it
             dup hptr + @ ?dup if nip else Stbl >xt then
             compile,
          else 
@@ -149,17 +141,19 @@ fmsCheck? [if]
    ( cls) , \ store class
   ^class dfa @ ( n) , ;  \ store offset to instance variable
 
+: ex-meth ( obj xt -- ) self >r swap to self execute r> to self ;
  
 : ?execute-method-eo ( addr -- ) 
     \ input stream:    ( "<message:>" -- )  early bind message send to ivar
     \     or        ( "<non-message>" -- ^obj ) just leave addr of embedded-object 
           >r
           postpone self r@ @ ( offs ) ?dup if postpone literal postpone + then
-          ?isSel
-          if \ early bind to following message
+          >in @ ?isSel
+          if nip \ early bind to following message
           ( addr )
             ( table-offset ) r@ cell+ @ @ ( ^dspatch ) >xt ( xt ) 
             postpone literal postpone ex-meth
+          else >in !
           then r> drop ; 
 
 : embed-make-ivar ( ^cls-eo offset "eo-name" -- )
@@ -208,14 +202,14 @@ fmsCheck? [if]
 
 0 value table-offset
 
-: make-selector ( 'name' --) get-current message-wid set-current
-  create table-offset cell+ dup to table-offset , set-current  
+: make-selector ( 'name' --) get-current dflt-cur set-current
+  create table-offset cell+ dup to table-offset , 254 c, set-current  
   does> @ over @ >xt ex-meth ;
 
 : get-selector ( "<messageName>" -- table-offset ) \ table-offset = selector
-  ?isSel if ( table-offset ) 
+  >in @ ?isSel if ( in table-offset ) nip
          else \ <messageName> is not a selector, so make it one
-           make-selector table-offset 
+           >in ! make-selector table-offset 
          then ;
 
 : sel ( "<messageName>" -- ) get-selector drop ;
@@ -231,17 +225,16 @@ fmsCheck? [if]
 
 : super ( 'name' --) ?isSel if Stbl >xt compile, else -1 abort" invalid selector after super" then ; immediate
 
-
 0 value (dict)-xt \ will contain xt for (dict)
 
 : ex-meth2 ( xt obj  -- ) self >r to self execute r> to self ;
 
 : ?execute ( obj --) 
-     ?isSel \ is the next word a selector?
-     if ( obj table-offset ) \ if yes early bind to it
+     >in @ ?isSel \ is the next word a selector?
+     if nip ( obj table-offset ) \ if yes early bind to it
         over @ ( obj table-offset ^dispatch ) >xt ( obj xt )
         postpone literal postpone literal postpone ex-meth2
-     else postpone literal   
+     else >in !   
      then
   ;
 
@@ -271,16 +264,16 @@ fmsCheck? [if]
   do-scan pad count s" <super" compare  \ addr $ptr flag
   if s" <super object" evaluate then ;  
 
- 
+0 [if] 
 : :class ( "name" -- addr) \ name of the new class being defined
     \ addr is passed to <super where the class name is stored at cfa
   >in @ bl word count ( n c-adr len ) here over 1+ allot dup >r place >in !  
    create immediate r>
    scanForSuper 
    does> build ;  
+[then]
 
-
-0 [if] 
+\ ### how to enable message-to-class
 : early-bind ( sel ^cls -- )
      dup dna @
      if
@@ -299,14 +292,14 @@ fmsCheck? [if]
    create immediate r>
    scanForSuper 
    does> ( ^cls) >r
-   ?isSel
+   state @ if ?isSel else false then
    if
      \ classname is followed by a message, so early bind to whatever object is on the stack
      (  sel ) r> ( sel ^cls ) early-bind 
    else
      r> build
    then ;  
- [then]
+ 
 
 defer restore  ' restore-order is restore
 
@@ -314,7 +307,7 @@ defer restore  ' restore-order is restore
 \ or whatever your system requires
 
 [defined] >M4TH [if]
-: restoreMF >M4TH message-wid +order 0 to ^class ;
+: restoreMF >M4TH 0 to ^class ;
 ' restoreMF is restore
 ' restoreMF is BeforeAlert 
 [then]
@@ -323,6 +316,7 @@ defer restore  ' restore-order is restore
   ^class , here ^class !
   hptrSz allot buildDtbl  
   hptr free throw
+  true ^class dna ! \ ### mark class as done compiling ( for early-bind )
   restore ;
 
 
@@ -370,12 +364,24 @@ defer restore  ' restore-order is restore
 : to-self ( obj --) to self ;
 
 : :f ( 'name' --) get-current dflt-cur set-current 
-  : postpone self postpone >r postpone to-self ; immediate
+  : ( 253 postpone literal postpone c, ) postpone self postpone >r postpone to-self ; immediate
 
 : ;f ( wid --) postpone r> postpone to-self postpone ; set-current ; immediate 
 
 : exitf postpone r> postpone to-self postpone exit ; immediate
 
+
+0 [if] \ attempt to identify :f ... ;f word, it fails
+: make-function ( 'name' --) get-current dflt-cur set-current
+  create 0 , 253 c, set-current 
+\  does> postpone drop postpone self postpone >r postpone to-self postpone :noname
+  ; \ immediate
+
+: :f make-function  postpone self postpone >r postpone to-self :noname ; immediate
+\ : :f make-function ;
+: ;f postpone literal postpone execute postpone r> postpone to-self postpone ;
+   ; immediate
+[then]
 
 : .class ( obj -- ) \ prints the class name of any object
   >class cna @ count type space ;
@@ -385,17 +391,18 @@ defer restore  ' restore-order is restore
 \ here swap - cr .  .( bytes used ) \ 7454 bytes on VFX Forth for OS X IA32 Version: 4.72 (32-bit)
                                   \ 5674 bytes on SwiftForth i386-macOS 3.10.5 15-Dec-2020 (32-bit)
 
-
+ 
 0 [if]
 
 :class point 
   cell bytes x
   cell bytes y
   :m :init ( x y --) y ! x ! ;m
-  :m :get ( -- x y) x @ y @ ;m
+  :f :get ( -- x y) x @ y @ ;f
 ;class
 
-30 50 point p p constant p2
+30 50 point p
+p constant p2
 
 :class rect 
   point ul
@@ -404,58 +411,22 @@ defer restore  ' restore-order is restore
   :m :get ( -- x1 y1 x2 y2 ) ul :get lr :get ;m
 ;class
 
-10 20 30 40 rect r r constant r2 
+10 20 30 40 rect r 
+r constant r2 
 
-
-: go 90000000 0 do p2 :get 2drop r2 :get 2drop 2drop loop ;
-
-counter go counter - .
-
-\ SF
-late bind =  9590 w\ fmsCheck? true
-late bind =  3050 w\ fmsCheck? false
-early bind = 1484 w\ fmsCheck? false
-:class rect2 <super object
-  cell bytes ul
-  cell bytes lr
-  :m :init ( x1 y1 x2 y2 --) dict> point lr ! dict> point ul ! ;m
-  :m :get ( -- x1 y1 x2 y2 ) ul @ :get lr @ :get ;m
-;class
-
-: >rect2 dict> rect2 ;
-: >point dict> point ;
-
-30 50 >point constant p2
-10 20 30 40 >rect2 constant r2 
-
-
+: go 90000000 0 do p :get 2drop r :get 2drop 2drop loop ;
 : go2 90000000 0 do p2 :get 2drop r2 :get 2drop 2drop loop ;
- 
-counter go2 counter - .
+: go3 90000000 0 do p2 point :get 2drop r2 rect :get 2drop 2drop loop ;
 
-
-:class rect2 <super object
-  point ul
-  point lr
-  :m :init ( x1 y1 x2 y2 --) lr :init ul :init ;m
-  \ proof that eo not followed by a message does the right thing
-  :m :get ( -- x1 y1 x2 y2 ) ul :get lr :get ul ;m
-;class
-
-1 2 3 4 rect2 r2
-r2 :get .s => 1 2 3 4 254328 <-Top  ok
-.class => point
-
+counter go counter - .  \ 1479
+counter go2 counter - . \ 3359
+counter go3 counter - . \ 1525
 [then]
 
 
--1 [if]
+0 [if]
 
 [defined] VFXForth [if]
-
-previous \ get rid of message-wid in search order
-         \ this seems to necessary for loading the following
-         \ VFX extensions 
 
 
 \ quotations.fth are not required, but are nice to have
@@ -468,14 +439,14 @@ previous \ get rid of message-wid in search order
 
 				   [then]
 
-restore \ restore message-wid
+restore \ necessary?
 
 [defined] 'SF [if]
   include /Users/doughoffman/Desktop/fpmathSF.f
   include /Users/doughoffman/SwiftForth/lib/options/quotations.f
     [then]
 
-restore \ restore message-wid
+restore \ necessary?
 
 include /Users/doughoffman/FMS2VT/ptr.f
 include /Users/doughoffman/FMS2VT/utility-words.f
@@ -493,7 +464,7 @@ include /Users/doughoffman/FMS2VT/hash-table-m.f
 include /Users/doughoffman/FMS2VT/btree.f
 
 \ optional testing routines
- include /Users/doughoffman/FMS2VT/FMS2Tester.f
+include /Users/doughoffman/FMS2VT/FMS2Tester.f
 
 [then]
 
