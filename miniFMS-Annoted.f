@@ -190,21 +190,20 @@ bar draw
 
 \ another example
 \ note re-use of draw (and there is no inheritance relationship)
-object class point
-  cell var x
-  cell var y
- :m p! ( x y -- ) y ! x ! ;m
- :m p@ ( -- x y ) x @ y @ ;m
- :m draw x ? y ? ;m
+object class point  
+  cell var px
+  cell var py
+ :m p! ( x y -- ) py ! px ! ;m
+ :m draw px ? py ? ;m
  :m :init ( x y -- ) self p! ;m  \ late bind
-\ :m :init ( x y -- ) [ point :: p! ] ;m \ alternatively early bind
+\ :m :init ( x y -- ) [ point :: p! ] ;m \ alternative, uses early bind
 drop
 
 1 2 point new constant p1
 p1 draw cr
 foo draw  \ draw still works on foo and bar
-cr bar draw
-: test 3 4 p1 p! p1 draw  p1 to self x @ y @ + . ;
+page bar draw 
+: test 3 4 p1 p! p1 draw p1 to self px @ py @ + . ;
 test
 \ => 3 4 7
 
