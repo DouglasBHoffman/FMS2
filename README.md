@@ -1,5 +1,5 @@
 FMS2 is an object programming extension to ANS Forth. It is class based, single inheritance, uses Duck Typing, and explicit references to self.
-FMS2VT uses virtual tables for fast late binding. FMSVT is about 30% faster than miniFMS on one of my benchmarks with a lot of late binding. This speed increase comes at the cost of some code complexity. See the documentation for details.
+FMS2VT uses virtual tables for fast late binding. FMSVT is about 30% faster than miniFMS on one of my benchmarks with a lot of late binding. This speed increase comes at the cost of code size and complexity. See the documentation for details.
 
 miniFMS is my idea of a minimalist ANS Forth object extension.
  
