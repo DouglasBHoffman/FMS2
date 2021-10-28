@@ -1,4 +1,4 @@
-\ Last Revision: 24 Oct 2021  11:06:08  dbh
+\ Last Revision: 28 Oct 2021 dbh
 
 0 [if]
 
@@ -208,3 +208,17 @@ test
 \ => 3 4 7
 
 [then] 
+
+0 [if]
+Note that if SELF is used as in the above examples for message-less 
+instance variable access. If this is done inside a method definition 
+to access the instance variables of another object then the contents
+of SELF must first be retained and finally restored after the acess.
+
+Also note that it would be simple to define a word to test for the
+class of any object because the first cell of all objects contain
+its class reference. For example: 
+
+" p1 @ point = " will return true
+
+[then]
