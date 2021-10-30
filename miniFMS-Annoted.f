@@ -2,13 +2,13 @@
 
 0 [if]
 
-What is different about miniFMS from other minimalist ANS Forth object extentions?
+What is different about miniFMS from other minimalist ANS Forth object extensions?
 
 1. Duck typing. The same message name can be used for objects from unrelated 
    (by inheritance) classes.
 
 2. The initialization message is automatically sent to each newly instantiated object.
-   This avoids the two-steo process of a) instantiate the object, b) initialize it.
+   This avoids the two-step process of a) instantiate the object, b) initialize it.
 
 3. Defining a message name, associating the method code with that name, and if necessary
    (automatically) over riding the superclass method: all done in one step instead of three.
@@ -17,7 +17,7 @@ What is different about miniFMS from other minimalist ANS Forth object extention
    cumbersome (and ugly IMO) to have to preface each(most) use of an instance variable with
    something like R@ or R>.
 
-5. New methods can be defined for any alread-defined class. Alread-instantiated objects
+5. New methods can be defined for any already-defined class. Already-instantiated objects
    will respond to these new methods.
 
 6. A "METHOD?" error message is presented if an object does not recognize a message sent
