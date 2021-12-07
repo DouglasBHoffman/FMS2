@@ -55,10 +55,9 @@ cell  contents
  8    dfa  ( addr of total size of instance variables for this class )
 
 Note that for class inheritance we need only copy the above to the newly created
-subclass and then update the SFA and WIDA fields. The DFA field will be updated
-as new instance variables are added to the subclass. Any new methods defined
-for the subclass will be appended to the n-way linked lists. The linked lists
-will naturally handle method inheritance and over riding.
+subclass. The DFA field will be updated as new instance variables are added to the
+subclass. Any new methods defined for the subclass will be appended to the n-way 
+linked lists. The linked lists will naturally handle method inheritance and over riding.
 
 The structure of all objects is to contain the ^class in its first cell, followed
 by the object's instance variables. Offsets to the instance variables can be obtained
@@ -85,7 +84,7 @@ by inspecting the definition of the instance variable. See the does> action of (
   while
     2dup cell+ @ = \ stored keys are 1 cell offset from node
     if 2 cells + nip @ exit then \ payload is xt, 2 cells offset from node
-  repeat -1 abort" method?" ; \ meth? => method not found
+  repeat -1 abort" method?" ; \ method? => method not found
 
 \ create the new class name and copy the 9 cells from
 \ the superclass to the new class for inheritance of the
@@ -210,10 +209,12 @@ test
 [then] 
 
 0 [if]
-Note that if SELF is used as in the above examples for message-less 
-instance variable access. If this is done inside a method definition 
+If SELF is used as in the above examples for message-less 
+instance variable access: If this is done inside a method definition 
 to access the instance variables of another object then the contents
 of SELF must first be retained and finally restored after the acess.
+Outside of a method definition no action is required because SELF
+is set upon each method call.
 
 Also note that it would be simple to define a word to test for the
 class of any object because the first cell of all objects contain
