@@ -79,19 +79,20 @@ fmscheck? [if]
 
 :f :read ( -- str-obj )
    ?open
-   id @ FILE-SIZE ABORT" read: FILE-SIZE failed"
+   id @ FILE-SIZE ABORT" :read FILE-SIZE failed"
    ( ud ) d>s buffer @ :resize 
    buffer @ dup :@ ( addr len ) id @ READ-FILE throw drop
    self :close
    ;f
 
+\ added :uneach to fix bug  12-27-2021 dbh
 :f :read-line ( -- str-obj true | false )
    ?open
    dflt-line-len @
    one-line @ :resize one-line @ :@ ( addr len )
    id @ READ-LINE throw
    if one-line @ :resize
-      one-line @ dup :reset  true
+      one-line @ dup :reset dup :uneach  true
    then ;f
 
 
@@ -104,7 +105,14 @@ fmscheck? [if]
    ?open
    s>d id @ REPOSITION-FILE ABORT" :!pos REPOSITION-FILE failed"
    ;f
- 
+
+   \ added :each and :uneach 12-27-2021 dbh
+:m :each ( -- str-obj t | f )
+    self :read-line ;m
+    
+:m :uneach
+    0 self :!pos ;m
+
 
 :f :@pos ( -- n )
    ?open
