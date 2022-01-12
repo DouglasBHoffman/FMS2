@@ -136,7 +136,7 @@ by inspecting the definition of the instance variable. See the does> action of (
 \ which is the address of the object, self, plus the offset.
 \ Important: instance variable names are not encapsulated
 \ meaning they can be shadowed by any subsequent definition.
-\ So if this you will be shadowing your instance variable names
+\ So if you will be shadowing your instance variable names
 \ but you still want to access them then you should define "getter"
 \ and "setter" methods for them.
 : (ivar) ( offset 'name' -- ) create , does> ( -- addr ) @ self + ;
