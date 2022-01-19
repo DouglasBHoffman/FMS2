@@ -4,16 +4,10 @@
 \ with no restrictions or source identification of any kind.
 \ Douglas B. Hoffman  dhoffman888@gmail.com
 
-\ Last Revision: 27 Oct 2021  06:33:14  dbh
-\ removed early binding via message-to-class, too complex, no need
-\ reinstated wordlist based ?isSel (otherwise code was bugged)
+\ tested on 32-bit: VFX, SwiftForth, Gforth
+\ tested on 64-bit: VFX
 
-[defined] >M4TH [if]
-ONLY FORTH DEFINITIONS
->M4TH
-traceoff debug off 
-anew --fms--
-[then]
+\ Last Revision: 15 Jan 2022  dbh
 
 \ optional unFREEd memory checker, for development
 \ include mem.f
@@ -25,9 +19,6 @@ anew --fms--
  : +order ( wid -- ) >r get-order r> swap 1+ set-order ;
 [then]
 
-
-
-\ here
 decimal
 
 \ *** BEGIN FMS2 CODE ***
@@ -60,9 +51,8 @@ message-wid +order \ make it the first wordlist to be searched, always
 : wida ( cls -- addr) 3 cells + ; \ wordlisi id address
 : ifa  ( cls -- addr) 4 cells + ; \ embedded object instance variables
 : cna  ( cls -- addr) 5 cells + ; \ class name address
-\ : dna  ( cls -- addr) 6 cells + ; \ ### is class done compiling? address
-\ 7 cells constant classSize \ ###
-6 cells constant classSize
+: dna  ( cls -- addr) 6 cells + ; \ is class done compiling? address
+7 cells constant classSize
 
 0 value hptr
 0 value hptrSz
@@ -96,7 +86,7 @@ create meta classSize allot  meta classSize erase  here 0 , meta !
   wordlist dup set-current r@ wida ! r> fms-set-order
   StblSz initHtbl
   addr ^class cna !
-\  false ^class dna ! \ ### mark class as not done compiling (for use by early-bind)
+  false ^class dna ! \ mark class as not done compiling (for use by early-bind)
   ;
 
 \ return the class of any object
@@ -240,16 +230,17 @@ fmsCheck? [if]
 
 : ex-meth2 ( xt obj  -- ) self >r to self execute r> to self ;
 
-: ?execute ( obj --) 
+: ?execute ( obj --)   \ Last Revision: 15 Jan 2022  10:44:54 fix for 64 bit VFX
      ?isSel \ is the next word a selector?
-     if ( obj table-offset ) \ if yes early bind to it
-        over @ ( obj table-offset ^dispatch ) >xt ( obj xt )
+     if ( obj table-offset ) \ yes so early bind with it
+        over @ ( obj table-offset ^dispatch ) >xt  ( obj xt )
+        ." " \ dummy code needed for VFX v5.x so this compiles without error
         postpone literal postpone literal postpone ex-meth2
-     else postpone literal   
+     else ( not a selctor, leave object reference) postpone literal   
      then
   ;
 
-: build ( class -- )  \ Last Revision: 12 Oct 2021  10:44:54  dbh fixed
+: build ( class -- )  \ Last Revision: 12 Oct 2021  10:44:54 fix per Ruvim
   ^class
   if embed-obj exit then \ inside a class definition, so we are building an embedded object as ivar declaration
    \ outside a class definition, so instantiate a new named dictionary object
@@ -275,16 +266,6 @@ fmsCheck? [if]
   do-scan pad count s" <super" compare  \ addr $ptr flag
   if s" <super object" evaluate then ;  
 
- 
-: :class ( "name" -- addr) \ name of the new class being defined
-    \ addr is passed to <super where the class name is stored at cfa
-  >in @ bl word count ( n c-adr len ) here over 1+ allot dup >r place >in !  
-   create immediate r>
-   scanForSuper 
-   does> build ;  
-
-
-0 [if] \ ### how to enable message-to-class
 : early-bind ( sel ^cls -- )
      dup dna @
      if
@@ -309,8 +290,7 @@ fmsCheck? [if]
      (  sel ) r> ( sel ^cls ) early-bind 
    else
      r> build
-   then ;  
- [then]
+   then ;
 
 defer restore  ' restore-order is restore
 
@@ -327,7 +307,7 @@ defer restore  ' restore-order is restore
   ^class , here ^class !
   hptrSz allot buildDtbl  
   hptr free throw
-\  true ^class dna ! \ ### mark class as done compiling ( for early-bind )
+  true ^class dna ! 
   restore ;
 
 
@@ -397,67 +377,79 @@ defer restore  ' restore-order is restore
   cell bytes x
   cell bytes y
   :m :init ( x y --) y ! x ! ;m
-  :f :get ( -- x y) x @ y @ ;f
+  :m :get ( -- x y) x @ y @ ;m
 ;class
 
-30 50 point p 
-
-
-p constant p2
+50 60 point p p constant p2
 
 :class rect 
   point ul
   point lr
   :m :init ( x1 y1 x2 y2 --) lr :init ul :init ;m
-  :m :get2 ( -- x1 y1 x2 y2 ) ul :get lr :get ;m
+  :m :get ( -- x1 y1 x2 y2 ) ul :get lr :get ;m
 ;class
 
 10 20 30 40 rect r r constant r2 
 
 
-: go 90000000 0 do p :get 2drop r :get2 2drop 2drop loop ;
-
-counter go counter - .
-
-\ SF
-late bind =  3050 w\ fmsCheck? false
-early bind = 1484 w\ fmsCheck? false
-:f bind   = 1306
-:class rect2 <super object
-  cell bytes ul
-  cell bytes lr
-  :m :init ( x1 y1 x2 y2 --) dict> point lr ! dict> point ul ! ;m
-  :m :get ( -- x1 y1 x2 y2 ) ul @ :get lr @ :get ;m
-;class
-
-: >rect2 dict> rect2 ;
-: >point dict> point ;
-
-30 50 >point constant p2
-10 20 30 40 >rect2 constant r2 
-
-
+: go  90000000 0 do p :get 2drop r :get 2drop 2drop loop ;
 : go2 90000000 0 do p2 :get 2drop r2 :get 2drop 2drop loop ;
- 
-counter go2 counter - .
 
-
-:class rect2 <super object
-  point ul
-  point lr
-  :m :init ( x1 y1 x2 y2 --) lr :init ul :init ;m
-  \ proof that eo not followed by a message does the right thing
-  :m :get ( -- x1 y1 x2 y2 ) ul :get lr :get ul ;m
-;class
-
-1 2 3 4 rect2 r2
-r2 :get .s => 1 2 3 4 254328 <-Top  ok
-.class => point
+\ note message-to-class in go3
+: go3 90000000 0 do p2 point :get 2drop r2 rect :get 2drop 2drop loop ;
 
 [then]
 
 
-0 [if]
+
+[defined] VFXForth [if]
+
+\ vfx timer 
+
+0 value timer
+: timer-reset
+  ticks to timer ;
+: .elapsed
+   ticks timer -  1000 * . ." microseconds elapsed" ;
+
+
+timer-reset go .elapsed  \ 1850    implicit early bind to dictionary object
+timer-reset go2 .elapsed \ 9120    late bind to dictionary object
+timer-reset go3 .elapsed \ 1830    explicit early bind using message-to-object
+[then]
+
+[defined] 'SF [if]
+
+\ swiftforth relative timer
+ VARIABLE START-TIME
+: timer-reset  COUNTER START-TIME ! ;
+: .elapsed  counter START-TIME @  - 1000 * ." microseconds= " . ;
+
+timer-reset go .elapsed  \ 1850    implicit early bind to dictionary object
+timer-reset go2 .elapsed \ 9120    late bind to dictionary object
+timer-reset go3 .elapsed \ 1830    explicit early bind using message-to-object
+[then]
+
+[defined] utime [if]
+
+\ gforth timer
+0 value timer
+: timer-reset
+ utime drop to timer ;
+: .elapsed
+   utime drop timer - .   ." microseconds elapsed" ;
+
+timer-reset go .elapsed  \ 1850    implicit early bind to dictionary object
+timer-reset go2 .elapsed \ 9120    late bind to dictionary object
+timer-reset go3 .elapsed \ 1830    explicit early bind using message-to-object
+
+[then]
+
+
+[then]
+
+
+-1 [if]
 
 [defined] VFXForth [if]
 
@@ -467,19 +459,19 @@ previous \ get rid of message-wid in search order
 
 
 \ quotations.fth are not required, but are nice to have
-  include /Users/doughoffman/VfxOsxPro/Examples/quotations.fth
+  include /Users/doughoffman/VfxForthOsx64/Examples/quotations.fth
   
   \ xchar.fth is only required if you want unicode capability in json.f
-  include /Users/doughoffman/VfxOsxPro/Lib/xchar.fth
+  include /Users/doughoffman/VfxForthOsx64/Lib/xchar.fth
 		[undefined] F+ [if]
-  include /Users/doughoffman/VfxOsxPro/Lib/x86/Ndp387.fth [then]
+  include /Users/doughoffman/VfxForthOsx64/Lib/x86/Ndp387.fth [then]
 
 				   [then]
 
 restore \ restore message-wid
 
 [defined] 'SF [if]
-  include /Users/doughoffman/Desktop/fpmathSF.f
+  include /Users/doughoffman/SwiftForth/lib/options/fpmath.f
   include /Users/doughoffman/SwiftForth/lib/options/quotations.f
     [then]
 
