@@ -1,3 +1,5 @@
+Update January 19, 2022. Added message-to-class early binding option. Updated documentation to explain this and to explain Eself. The :each method has been added to the file class.
+
 FMS2 is an object programming extension to ANS Forth. It is class based, single inheritance, uses Duck Typing, and explicit references to self.
 FMS2VT uses virtual tables for fast late binding. FMSVT is about 30% faster than miniFMS on one of my benchmarks with a lot of late binding. This speed increase comes at the cost of code size and complexity. See the documentation for details.
 
