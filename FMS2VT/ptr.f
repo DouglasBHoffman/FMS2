@@ -1,11 +1,10 @@
 
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
-\ Feb 8, 2021 Douglas B. Hoffman
+\ Feb 8, 2022 Douglas B. Hoffman
 \ dhoffman888@gmail.com
-\ require <super declaration
 
-:class ptr <super object
+:class ptr 
  cell bytes data
  cell bytes len \ len, in bytes, of memory allocated
  :m :size ( -- n )  len @ ;m

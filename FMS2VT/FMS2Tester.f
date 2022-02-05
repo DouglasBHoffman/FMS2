@@ -468,6 +468,36 @@ hash-table t
 s" mama" t :delete .
 s" goofy frog" t :delete .
 
+cr .( Testing Message-to-Class Early Binding)
+cr
+
+:class point 
+  cell bytes x
+  cell bytes y
+  :m :init ( x y --) y ! x ! ;m
+  :m :get ( -- x y) x @ y @ ;m
+;class
+
+50 60 point p p constant p2
+
+:class rect 
+  point ul
+  point lr
+  :m :init ( x1 y1 x2 y2 --) lr :init ul :init ;m
+  :m :get ( -- x1 y1 x2 y2 ) ul :get lr :get ;m
+;class
+
+10 20 30 40 rect r r constant r2 
+
+
+: go  900 0 do p :get 2drop r :get 2drop 2drop loop ;
+: go2 900 0 do p2 :get 2drop r2 :get 2drop 2drop loop ;
+
+\ note message-to-class in go3
+: go3 900 0 do p2 point :get 2drop r2 rect :get 2drop 2drop loop ;
+go
+go2
+go3
 
 cr cr .( FMS2VT Tests Concluded Successfully)
 

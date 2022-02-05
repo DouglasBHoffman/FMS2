@@ -4,10 +4,6 @@
 \ Jan 25 2021 Douglas B. Hoffman
 \ dhoffman888@gmail.com
 
-\ removed extra [then] in conditional compilation
-
-\ Last Revision: 21 Dec 2019  04:56:21  dbh
-\ defined HOF :apply prior to class array (required)
 
 
 [undefined] ptr [if] .( file ptr.f required ) [then]
@@ -26,7 +22,6 @@ make-selector :at
 make-selector :uneach
 make-selector :each
 
-\ HOF
 
 \ replaces ordered-col when used with >dict
 :class array <super ptr \ ( max#elems -- ) dict>  or  ( -- ) heap>
@@ -62,7 +57,6 @@ fmsCheck? [if]
     then #elems @ 1 - (resize) ;m
 
  :m :clear \ reset the array size to zero
-\    ['] <free self :apply
     0 #elems !
     0 current-idx !
     alloc? c@ if 0 super :resize then ;m

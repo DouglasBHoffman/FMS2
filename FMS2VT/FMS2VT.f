@@ -21,6 +21,8 @@
 
 decimal
 
+\ here
+
 \ *** BEGIN FMS2 CODE ***
 
 true constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
@@ -367,86 +369,10 @@ defer restore  ' restore-order is restore
 
 \ *** END FMS2 CODE ***
 
-\ here swap - cr .  .( bytes used ) \ 7454 bytes on VFX Forth for OS X IA32 Version: 4.72 (32-bit)
-                                  \ 5674 bytes on SwiftForth i386-macOS 3.10.5 15-Dec-2020 (32-bit)
+\ here swap - cr .  .( bytes used ) \ 8546 bytes on VFX Forth for OS X IA32 Version: 4.81 (32-bit)
+\                                  \ 6762 bytes on SwiftForth i386-macOS 3.10.5 15-Dec-2020 (32-bit)
 
 
-0 [if]
-
-:class point 
-  cell bytes x
-  cell bytes y
-  :m :init ( x y --) y ! x ! ;m
-  :m :get ( -- x y) x @ y @ ;m
-;class
-
-50 60 point p p constant p2
-
-:class rect 
-  point ul
-  point lr
-  :m :init ( x1 y1 x2 y2 --) lr :init ul :init ;m
-  :m :get ( -- x1 y1 x2 y2 ) ul :get lr :get ;m
-;class
-
-10 20 30 40 rect r r constant r2 
-
-
-: go  90000000 0 do p :get 2drop r :get 2drop 2drop loop ;
-: go2 90000000 0 do p2 :get 2drop r2 :get 2drop 2drop loop ;
-
-\ note message-to-class in go3
-: go3 90000000 0 do p2 point :get 2drop r2 rect :get 2drop 2drop loop ;
-
-[then]
-
-
-
-[defined] VFXForth [if]
-
-\ vfx timer 
-
-0 value timer
-: timer-reset
-  ticks to timer ;
-: .elapsed
-   ticks timer -  1000 * . ." microseconds elapsed" ;
-
-
-timer-reset go .elapsed  \ 1850    implicit early bind to dictionary object
-timer-reset go2 .elapsed \ 9120    late bind to dictionary object
-timer-reset go3 .elapsed \ 1830    explicit early bind using message-to-object
-[then]
-
-[defined] 'SF [if]
-
-\ swiftforth relative timer
- VARIABLE START-TIME
-: timer-reset  COUNTER START-TIME ! ;
-: .elapsed  counter START-TIME @  - 1000 * ." microseconds= " . ;
-
-timer-reset go .elapsed  \ 1850    implicit early bind to dictionary object
-timer-reset go2 .elapsed \ 9120    late bind to dictionary object
-timer-reset go3 .elapsed \ 1830    explicit early bind using message-to-object
-[then]
-
-[defined] utime [if]
-
-\ gforth timer
-0 value timer
-: timer-reset
- utime drop to timer ;
-: .elapsed
-   utime drop timer - .   ." microseconds elapsed" ;
-
-timer-reset go .elapsed  \ 1850    implicit early bind to dictionary object
-timer-reset go2 .elapsed \ 9120    late bind to dictionary object
-timer-reset go3 .elapsed \ 1830    explicit early bind using message-to-object
-
-[then]
-
-
-[then]
 
 
 -1 [if]
@@ -459,12 +385,12 @@ previous \ get rid of message-wid in search order
 
 
 \ quotations.fth are not required, but are nice to have
-  include /Users/doughoffman/VfxForthOsx64/Examples/quotations.fth
-  
+  include /Users/doughoffman/VfxOsxPro/Examples/quotations.fth
+          
   \ xchar.fth is only required if you want unicode capability in json.f
-  include /Users/doughoffman/VfxForthOsx64/Lib/xchar.fth
+  include /Users/doughoffman/VfxOsxPro/Lib/xchar.fth
 		[undefined] F+ [if]
-  include /Users/doughoffman/VfxForthOsx64/Lib/x86/Ndp387.fth [then]
+  include /Users/doughoffman/VfxOsxPro/Lib/x86/Ndp387.fth [then]
 
 				   [then]
 
@@ -477,23 +403,23 @@ restore \ restore message-wid
 
 restore \ restore message-wid
 
-include /Users/doughoffman/FMS2VT/ptr.f
-include /Users/doughoffman/FMS2VT/utility-words.f
-include /Users/doughoffman/FMS2VT/array.f
-include /Users/doughoffman/FMS2VT/string.f
-include /Users/doughoffman/FMS2VT/int.f
-include /Users/doughoffman/FMS2VT/flt.f
-include /Users/doughoffman/FMS2VT/file.f
-include /Users/doughoffman/FMS2VT/farray.f
-include /Users/doughoffman/FMS2VT/arrays.f 
-include /Users/doughoffman/FMS2VT/objectArray.f 
-include /Users/doughoffman/FMS2VT/json.f
-include /Users/doughoffman/FMS2VT/hash-table.f
-include /Users/doughoffman/FMS2VT/hash-table-m.f
-include /Users/doughoffman/FMS2VT/btree.f
+include /Users/doughoffman/FMS2VTFEB6/ptr.f
+include /Users/doughoffman/FMS2VTFEB6/utility-words.f
+include /Users/doughoffman/FMS2VTFEB6/array.f
+include /Users/doughoffman/FMS2VTFEB6/string.f
+include /Users/doughoffman/FMS2VTFEB6/int.f
+include /Users/doughoffman/FMS2VTFEB6/flt.f
+include /Users/doughoffman/FMS2VTFEB6/file.f
+include /Users/doughoffman/FMS2VTFEB6/farray.f
+include /Users/doughoffman/FMS2VTFEB6/arrays.f 
+include /Users/doughoffman/FMS2VTFEB6/objectArray.f 
+include /Users/doughoffman/FMS2VTFEB6/json.f
+include /Users/doughoffman/FMS2VTFEB6/hash-table.f
+include /Users/doughoffman/FMS2VTFEB6/hash-table-m.f
+include /Users/doughoffman/FMS2VTFEB6/btree.f
 
 \ optional testing routines
- include /Users/doughoffman/FMS2VT/FMS2Tester.f
+ include /Users/doughoffman/FMS2VTFEB6/FMS2Tester.f
 
 [then]
 

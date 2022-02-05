@@ -39,13 +39,6 @@
 
 defer lower
 
-[undefined] >lower [if]
-: >lower ( C -- c ) \ return lower-case character of c
-    dup [char] A [ char Z 1+ ] literal within if
-        32 +
-    then ;
-[then]
-
 \ if flag is true (case insensitive search) then the pattern text will already be lower case
 : fast-search ( patternA patLen textA textLen deltaTable flag  -- n true | false )
   ( flag) if  ['] >lower else ['] noop then is lower 
@@ -72,11 +65,10 @@ defer lower
 \ *** end Boyer-Moore search engine
 
 fmsCheck? [if]
-
-\ Last Revision:  9 Dec 2019  06:39:19  dbh added dup 0= if 2drop exit then
 : check ( n --) maxsize @ dup 0= if 2drop exit then > abort" string max-size exceeded" ;
 [else] : check drop ;
 [then]
+
  :m :resize ( newsize -- )
     maxsize @
     if  dup check len ! 
@@ -118,7 +110,6 @@ fmsCheck? [if]
     if dup check dup len ! data @ swap move
     else dup super :resize data @ swap move
     then ;m
-
 
  :m :init \ ( adr len -- ) or if static: ( adr len max --)
     ?alloc 
@@ -279,45 +270,7 @@ fmsCheck? [if]
 :m :first ( -- c ) 0 eself :at ;m
 :m :second ( -- c ) 1 eself :at ;m
 :m :last ( -- c ) super :size 1- eself :at ;m
-0 [if]
-\ remove leading and trailing chars, removes more than one char(s) occurring consecutively between words
-\ original string is untouched, new heap string is returned
-:f :remove-extra-chars ( c -- newstr )
-   0 0 heap> string true locals| last-char-was-c? newstr c  |
-   super :size 0 ?do i eself :at dup c =
-                    if last-char-was-c? 0= if newstr :ch+ true to last-char-was-c? else drop then
-                    else newstr :ch+ false to last-char-was-c?
-                    then
-                loop
-                last-char-was-c? if newstr :size 1- newstr :resize then
-                newstr ;f
 
-
-\ find substring(s) delimited by:
-\ 1) start of string and char
-\ 2) and char and char
-\ 3) and char and end of string
-\ return all of them as an array of string objects allocated in the heap
-:f :split ( char -- 1-arry-obj )
-    heap> array 0 locals| strt arr c |
-   eself :reset
-   c self :remove-extra-chars to self
-   eself :reset
-   begin
-     c self :chsearch
-   while
-    start @ end @
-    strt start ! -1 end +!
-    self :@sub heap> string arr :add
-    dup to strt
-    end ! start !
-   repeat
-   start @ eself :at c =
-     if 1 start +! then
-    super :size end !
-    self :@sub heap> string arr :add
-   arr ;f
-[then]
 ;class
 
 
@@ -362,10 +315,6 @@ fmsCheck? [if]
  : :replallCI \ { addr1 len1 addr2 len2 str-obj -- } \ case insensitive
    ['] :searchCI (replall) ;
  
-
-\ 0 [if]
-\ remove leading and trailing chars, removes more than one char(s) occurring consecutively between words
-\ original string is untouched, new heap string is returned
 : :remove-extra-chars ( c str-obj -- newstr )
    0 0 heap> string true locals| last-char-was-c? newstr obj c  |
    obj :size 0 ?do i obj :at dup c =
@@ -401,35 +350,3 @@ fmsCheck? [if]
     obj :size obj :end !
     obj :@sub heap> string arr :add
    arr ;
-\ [then]
-
-
-
-
-0 [if]
-
-: .hex                  \ n -- ; used for log file only
-  3 out +!                              \ increment counter
-  base @ >r hex                         \ preserve base
-  0ff f-and s>d <# # # #> write-text    \ write number
-  sp 1 write-text                       \ write space
-  r> base !                             \ restore base
-;
-
-: .hex ( n -- ) hex . decimal ;
-
-226 .hex  
-
-debug on
-s\" \"qz\u00E2\u0082\u00AC\"" $>json
-
-
-226 255 base ! . decimal  ok
-
-s" 0082" hex evaluate decimal . 130 ok
-
-
-j{ "qz\u00E2\u0082\u00AC": 10 }j 
-
-
-[then]
