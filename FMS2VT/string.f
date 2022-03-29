@@ -6,6 +6,7 @@
 \ corrected check 12/9/2019
 \ changed to strict 0-127 ascii chars 1/3/2020
 \ Last Revision: 19 Oct 2021  06:27:28  dbh modified to use early-bind
+\ dbh Mar 29 2022 fixed memory leak in :split
 
 
 [undefined] ptr [if] .( file ptr.f required ) abort [then]
@@ -349,4 +350,5 @@ fmsCheck? [if]
      if 1 obj :start +! then
     obj :size obj :end !
     obj :@sub heap> string arr :add
+    obj <free \ free newstr from :remove-extra-chars dbh Mar 29 2022
    arr ;
