@@ -7,7 +7,8 @@
 \ changed to strict 0-127 ascii chars 1/3/2020
 \ Last Revision: 19 Oct 2021  06:27:28  dbh modified to use early-bind
 \ dbh Mar 29 2022 fixed memory leak in :split
-
+\ dbh Apr 1, 2022 changed :remove-extra-chars to allow s" ,1,2,3" to be
+\  properly handled
 
 [undefined] ptr [if] .( file ptr.f required ) abort [then]
 [undefined] array [if] .( file array.f required ) abort [then]
@@ -316,8 +317,12 @@ fmsCheck? [if]
  : :replallCI \ { addr1 len1 addr2 len2 str-obj -- } \ case insensitive
    ['] :searchCI (replall) ;
  
+\ Changed to not remove first char of string if it is a match
+\ for c. This allows s" ,1,2,3" to be parsed as four items with
+\ the first item being a zero-length string object  4/1/2022 dbh
 : :remove-extra-chars ( c str-obj -- newstr )
-   0 0 heap> string true locals| last-char-was-c? newstr obj c  |
+\   0 0 heap> string true locals| last-char-was-c? newstr obj c  |
+   0 0 heap> string false locals| last-char-was-c? newstr obj c  |
    obj :size 0 ?do i obj :at dup c =
                     if last-char-was-c? 0= if newstr :ch+ true to last-char-was-c? else drop then
                     else newstr :ch+ false to last-char-was-c?
