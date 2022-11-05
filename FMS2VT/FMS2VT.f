@@ -7,7 +7,8 @@
 \ tested on 32-bit: VFX, SwiftForth, Gforth
 \ tested on 64-bit: VFX
 
-\ Last Revision: 15 Jan 2022  dbh
+\ Last Revision: 5 Nov 2022  dbh
+\ minor tweak to <super
 
 \ optional unFREEd memory checker, for development
 \ include mem.f
@@ -83,11 +84,11 @@ create meta classSize allot  meta classSize erase  here 0 , meta !
     dup wida @ +order sfa @ 
   repeat drop ;
 
-: <super ( addr 'name' -- ) locals| addr | here dup >r to ^class 
+: <super ( addr 'name' -- ) here dup >r to ^class 
   classSize allot ' >body dup r@ classSize move r@ sfa !
   wordlist dup set-current r@ wida ! r> fms-set-order
   StblSz initHtbl
-  addr ^class cna !
+  ( addr ) ^class cna !
   false ^class dna ! \ mark class as not done compiling (for use by early-bind)
   ;
 
