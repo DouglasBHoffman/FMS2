@@ -1,4 +1,4 @@
-
+\ include /Users/doughoffman/FMS2VT/FMS2VT.f
 
 \ This software is free for use and modification by anyone for any purpose
 \ with no restrictions or source identification of any kind.
@@ -373,10 +373,40 @@ defer restore  ' restore-order is restore
 \ here swap - cr .  .( bytes used ) \ 8546 bytes on VFX Forth for OS X IA32 Version: 4.81 (32-bit)
 \                                  \ 6762 bytes on SwiftForth i386-macOS 3.10.5 15-Dec-2020 (32-bit)
 
+\ simple example classes point and rect
+\ note how rect uses 2 point objects as instance variables
+0 [if]
+
+:class point
+ cell bytes x
+ cell bytes y
+ :m :init ( x y -- ) y ! x ! ;m
+ :m :get ( -- x y ) x @ y @ ;m
+ :m :put ( x y -- ) self :init ;m
+;class
+
+10 20 point p  \ instantiate a point in the dictionary
+
+p :get . . \ => 20 10  ok
+p .class  \ => point
 
 
+:class rect
+ point ul
+ point lr
+ :m :init ( x1 y1 x2 y2 -- ) lr :put  ul :put ;m
+ :m :get ( -- x1 y1 x2 y2 ) ul :get  lr :get ;m
+;class
 
--1 [if]
+3 4 15 16 rect r   \ instantiate a rect in the dictionary
+
+r :get . . . . \ => 16 15 4 3  ok
+
+[then]
+
+
+\ some optional class libraries
+0 [if]
 
 [defined] VFXForth [if]
 
@@ -404,23 +434,23 @@ restore \ restore message-wid
 
 restore \ restore message-wid
 
-include /Users/doughoffman/FMS2VTFEB6/ptr.f
-include /Users/doughoffman/FMS2VTFEB6/utility-words.f
-include /Users/doughoffman/FMS2VTFEB6/array.f
-include /Users/doughoffman/FMS2VTFEB6/string.f
-include /Users/doughoffman/FMS2VTFEB6/int.f
-include /Users/doughoffman/FMS2VTFEB6/flt.f
-include /Users/doughoffman/FMS2VTFEB6/file.f
-include /Users/doughoffman/FMS2VTFEB6/farray.f
-include /Users/doughoffman/FMS2VTFEB6/arrays.f 
-include /Users/doughoffman/FMS2VTFEB6/objectArray.f 
-include /Users/doughoffman/FMS2VTFEB6/json.f
-include /Users/doughoffman/FMS2VTFEB6/hash-table.f
-include /Users/doughoffman/FMS2VTFEB6/hash-table-m.f
-include /Users/doughoffman/FMS2VTFEB6/btree.f
+include /Users/doughoffman/FMS2VT/ptr.f
+include /Users/doughoffman/FMS2VT/utility-words.f
+include /Users/doughoffman/FMS2VT/array.f
+include /Users/doughoffman/FMS2VT/string.f
+include /Users/doughoffman/FMS2VT/int.f
+include /Users/doughoffman/FMS2VT/flt.f
+include /Users/doughoffman/FMS2VT/file.f
+include /Users/doughoffman/FMS2VT/farray.f
+include /Users/doughoffman/FMS2VT/arrays.f 
+include /Users/doughoffman/FMS2VT/objectArray.f 
+include /Users/doughoffman/FMS2VT/json.f
+include /Users/doughoffman/FMS2VT/hash-table.f
+include /Users/doughoffman/FMS2VT/hash-table-m.f
+include /Users/doughoffman/FMS2VT/btree.f
 
 \ optional testing routines
- include /Users/doughoffman/FMS2VTFEB6/FMS2Tester.f
+ include /Users/doughoffman/FMS2V/FMS2Tester.f
 
 [then]
 
@@ -444,7 +474,7 @@ include /Users/doughoffman/FMS2VTFEB6/btree.f
   cr ." DUMP CLASS"
  0 to addr to ^class 
  cr ^class . 2 spaces 0 . ." ^class=" ^class . ." ^class @ => " ^class @ .  ." = ^dispatchTable"
- cr  ^class DFA dup . 2 spaces 1  . @  . ."  ^class DFA @  => obj length without indexed area"
+ cr  ^class DFA dup . 2 spaces 1  . @  . ."  ^class DFA @  => obj length"
  cr  ^class SFA dup . space 2  . @ . ."   ^class SFA @ => superclass "
  cr  ^class WIDA dup . space 3  . @ . ."   ^class WIDA @ => wordlist id "
  cr  ^class IFA dup . space 4  . @ . ."   ^class IFA @ => ^ifa "
