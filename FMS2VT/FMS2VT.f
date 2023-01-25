@@ -7,7 +7,7 @@
 \ tested on 32-bit: VFX, SwiftForth, Gforth
 \ tested on 64-bit: VFX
 
-\ Last Revision: 5 Nov 2022  dbh
+\ Last Revision: 25 Jan 2023  dbh
 \ eliminated :f ... ;f definitions due to possible problems in certain situations
 \ eliminated message-wid wordlist and added 254 c@ tag to identify messages
 
