@@ -1,4 +1,5 @@
-Update February 7, 2022. Updated documentation to explain message-to-class early binding and a few other details.
+Update January 25, 2023. Eliminated :f ... ;f definitions due to possible problems in certain situations.
+  Eliminated message-wid wordlist and added 254 c@ tag to identify messages. Overall simplification.
 
 FMS2 is an object programming extension to ANS Forth. It is class based, single inheritance, uses Duck Typing, and explicit references to self.
 FMS2VT uses virtual tables for fast late binding. FMSVT is about 30% faster than miniFMS on one of my benchmarks with a lot of late binding. This speed increase comes at the cost of code size and complexity. See the documentation for details.
