@@ -16,16 +16,16 @@ defer free-val
  cell bytes val
  cell bytes next
  :m :init 0 0 key :init ;m
- :f init ( val kaddr klen -- ) \ Initialise the node with the val, key
-     key :!  val !  0 next ! ;f
+ :m init ( val kaddr klen -- ) \ Initialise the node with the val, key
+     key :!  val !  0 next ! ;m
 \ :m :free key :free ;m \ ###
  :m :free key :free val @ free-val ;m \ only use val @ <freeAll when val is a heap allocated array
- :f :key@ ( -- obj ) \ will be a string object
-     key ;f
-  :f :val@ ( -- val ) val @ ;f
- :f :val! ( -- val ) val ! ;f
+ :m :key@ ( -- obj ) \ will be a string object
+     key ;m
+  :m :val@ ( -- val ) val @ ;m
+ :m :val! ( -- val ) val ! ;m
  :m :next ( -- next-node ) next @ ;m
- :f :next! ( next-node -- ) next ! ;f
+ :m :next! ( next-node -- ) next ! ;m
  :m :@ ( -- hash ) hash @ ;m
  :m :! ( -- hash ) hash ! ;m
  fmscheck? [if]
@@ -55,7 +55,6 @@ defer free-val
     3 0 do 0 table @ :add loop \ initialize with room for 3 nodes 
  ;m
 
-\ :f :@table ( -- array) table @ ;f
 : hash-iv  ( addr len -- hash ) \ from Dick Pountain JFAR Vol3 Number 3 p68
   32 min 0 swap 0 do over i + c@ i 1+ * + loop swap drop ;
 

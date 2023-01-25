@@ -40,7 +40,7 @@ fmsCheck? [if]
 [else] 
   : ^elem ( idx -- addr ) elemSize @ * data @  + ;
 [then]
- :f :^elem ( idx -- addr ) ^elem ;f
+ :m :^elem ( idx -- addr ) ^elem ;m
  : check ( n --) len @ > abort" array maxsize exceeded" ;
  : (resize) ( #elems -- )
     alloc? c@

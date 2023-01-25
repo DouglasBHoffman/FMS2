@@ -154,7 +154,7 @@ fmsCheck? [if]
   ?do i c@ >lower i c!
   loop ;
 
- :f :upper \ converts entire string to upper case
+ :m :upper \ converts entire string to upper case
      get 
      over \ addr cnt addr
 	 + swap  \ cnt+addr addr
@@ -163,34 +163,34 @@ fmsCheck? [if]
 	  if 32 xor i c!
 	  else drop
 	  then
-	 loop ;f
- :f :lower \ converts entire string to lower case
-     get to-lower ;f
+	 loop ;m
+ :m :lower \ converts entire string to lower case
+     get to-lower ;m
 
- :f :@sub ( -- addr len ) \ fetch substring
-    data @ start @ + ( addr ) end @ start @ - ;f
+ :m :@sub ( -- addr len ) \ fetch substring
+    data @ start @ + ( addr ) end @ start @ - ;m
 
- :f :selectAll \ select entire string
-    0 start ! len @ end ! ;f
+ :m :selectAll \ select entire string
+    0 start ! len @ end ! ;m
 
- :f :=sub ( addr1 len1 -- b )  \ case sensitive
-    dup end @ start @ - <> if 2drop false exitf then  \ get out early if length mismatch
-    self :@sub compare 0= ;f
+ :m :=sub ( addr1 len1 -- b )  \ case sensitive
+    dup end @ start @ - <> if 2drop false exit then  \ get out early if length mismatch
+    self :@sub compare 0= ;m
 
- :f :=subCI ( addr1 len1 -- b ) \ case insensitive
-    dup end @ start @ - <> if 2drop false exitf then  \ get out early if length mismatch
+ :m :=subCI ( addr1 len1 -- b ) \ case insensitive
+    dup end @ start @ - <> if 2drop false exit then  \ get out early if length mismatch
     ( addr1 len1) heap> string  >r self :@sub heap> string  
     dup :lower   r@ :lower \ make both string copies lowercase
     dup :@  r@ :@ compare 0=
-    swap <free r> <free ;f
+    swap <free r> <free ;m
 
  \ compare addr1 len1 to the entire string
  :m := ( addr1 len1 -- true | false ) \ case sensitive
      self :selectAll
      self :=sub ;m
- :f :=CI ( addr1 len1 -- true | false ) \ case insensitive
+ :m :=CI ( addr1 len1 -- true | false ) \ case insensitive
      self :selectAll
-     self :=subCI ;f
+     self :=subCI ;m
 
 : (search)1 ( addr len -- flag ) dup len @ end @ - > ;
 : str-obj ( addr len -- str-obj) heap> string 128 allocate throw ;
@@ -207,15 +207,15 @@ fmsCheck? [if]
    else false
    then swap <free r> free throw ;m
 
-:f :searchCI ( addr len -- true | false ) \ case insensitive
+:m :searchCI ( addr len -- true | false ) \ case insensitive
     \ first do rationality check
     \ return false if len to find is greater than remainder
-   (search)1 if 2drop false exitf then
+   (search)1 if 2drop false exit then
    str-obj >r \ str  
    dup :@ 2dup to-lower (search)2 r@ true fast-search
    if (search)3
    else false
-   then swap <free r> free throw ;f
+   then swap <free r> free throw ;m
 
 \ inserts text starting at END, START and END are moved to end of inserted text
  :m :insert \ { addr len -- }
@@ -229,9 +229,9 @@ fmsCheck? [if]
  :m :replace ( addr len -- )
      eself :delete eself :insert ;m
 
- :f :start ( -- start-addr ) start ;f
+ :m :start ( -- start-addr ) start ;m
 
- :f :end ( -- len-addr ) end ;f
+ :m :end ( -- len-addr ) end ;m
  
 fmsCheck? [if]
  :m :d  ( -- ) \ formatted dump of string for debugging and illustration of method effects
@@ -246,8 +246,8 @@ fmsCheck? [if]
  ;m
  [then]
  
- :f :ch+ ( char -- ) \ add char to end of string
-     len @ 1+ eself :resize  get + 1- c! ;f
+ :m :ch+ ( char -- ) \ add char to end of string
+     len @ 1+ eself :resize  get + 1- c! ;m
 
 : chsearch ( c xt -- flag )
    is lower
@@ -259,15 +259,15 @@ fmsCheck? [if]
      r@ = if current-idx @ dup 1- start ! end ! r> drop true exit then
     repeat r> drop false ;
        
-:f :chsearch ( c -- flag ) 
-   ['] noop chsearch ;f
+:m :chsearch ( c -- flag ) 
+   ['] noop chsearch ;m
     
-:f :chsearchCI ( c -- flag )
-   ['] >lower chsearch ;f
+:m :chsearchCI ( c -- flag )
+   ['] >lower chsearch ;m
  
 
 \ inserts char at END, START and END are moved to just past inserted char
-:f :chinsert ( c -- ) pad c!  pad 1 eself :insert ;f 
+:m :chinsert ( c -- ) pad c!  pad 1 eself :insert ;m 
 
 :m :first ( -- c ) 0 eself :at ;m
 :m :second ( -- c ) 1 eself :at ;m

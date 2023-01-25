@@ -8,6 +8,10 @@
 \ tested on 64-bit: VFX
 
 \ Last Revision: 5 Nov 2022  dbh
+\ eliminated :f ... ;f definitions due to possible problems in certain situations
+\ eliminated message-wid wordlist and added 254 c@ tag to identify messages
+
+\ Last Revision: 5 Nov 2022  dbh
 \ minor tweak to <super
 
 \ optional unFREEd memory checker, for development
@@ -35,23 +39,16 @@ create order-list 6 cells allot
 : save-order get-order dup 1+ 0 do order-list i cells + ! loop ;
 save-order
 
-\ We use message-wid wordlist to record and identify all messages during class creation. 
-\ But the message definition used for actual message sends will be in the dflt-cur
-\ wordlist. This way we can always identify message names that may conflict with
-\ other definitions.
-wordlist constant message-wid  
-message-wid +order \ make it the first wordlist to be searched, always
-
 0 value ^class
 
 : restore-order
   0 order-list @ do order-list i cells + @ -1 +loop set-order
-  message-wid +order dflt-cur set-current 0 to ^class ;
+  dflt-cur set-current 0 to ^class ;
 
 0 value self
 : dfa  ( cls -- addr) 1 cells + ; \ data field address
 : sfa  ( cls -- addr) 2 cells + ; \ superclass field address
-: wida ( cls -- addr) 3 cells + ; \ wordlisi id address
+: wida ( cls -- addr) 3 cells + ; \ wordlist id address
 : ifa  ( cls -- addr) 4 cells + ; \ embedded object instance variables
 : cna  ( cls -- addr) 5 cells + ; \ class name address
 : dna  ( cls -- addr) 6 cells + ; \ is class done compiling? address
@@ -104,10 +101,8 @@ create meta classSize allot  meta classSize erase  here 0 , meta !
 
 : ?isSel ( "<name>" -- table-offset t | f) 
                  \ selector-ID = table-offset
-  >in @ bl word count message-wid search-wordlist
-  if ( in xt ) nip >body ( addr ) @ true exit 
-  then >in ! false ;
-
+  >in @ bl word find if >body dup cell+ c@ 254 =
+  if nip @ true exit then then drop >in ! false ;
 
 : not-understood? ( flag -- ) abort" message not understood" ;
 
@@ -205,8 +200,8 @@ fmsCheck? [if]
 
 0 value table-offset
 
-: make-selector ( 'name' --) get-current message-wid set-current
-  create table-offset cell+ dup to table-offset , set-current  
+: make-selector ( 'name' --) get-current dflt-cur set-current
+  create table-offset cell+ dup to table-offset , 254 c, set-current  
   does> @ over @ >xt ex-meth ;
 
 : get-selector ( "<messageName>" -- table-offset ) \ table-offset = selector
@@ -218,7 +213,9 @@ fmsCheck? [if]
 : sel ( "<messageName>" -- ) get-selector drop ;
 
 : :m ( 'name' -- #table-cells xt ) get-selector cell / :noname ;
-: ;m ( #table-cells xt --) postpone ; swap
+
+: ;m ( #table-cells xt --)
+   postpone ; swap
    begin
      HtblSz 1- over < 
    while
@@ -227,7 +224,6 @@ fmsCheck? [if]
    repeat ^helem ! ; immediate
 
 : super ( 'name' --) ?isSel if Stbl >xt compile, else -1 abort" invalid selector after super" then ; immediate
-
 
 0 value (dict)-xt \ will contain xt for (dict)
 
@@ -283,6 +279,7 @@ fmsCheck? [if]
 
 : :class ( "name" -- addr) \ name of the new class being defined
     \ addr is passed to <super where the class name is stored at cfa
+  ^class abort" :CLASS used before prior class is compiled"
   >in @ bl word count ( n c-adr len ) here over 1+ allot dup >r place >in !  
    create immediate r>
    scanForSuper 
@@ -301,7 +298,7 @@ defer restore  ' restore-order is restore
 \ or whatever your system requires
 
 [defined] >M4TH [if]
-: restoreMF >M4TH message-wid +order 0 to ^class ;
+: restoreMF >M4TH ( message-wid +order ) 0 to ^class ;
 ' restoreMF is restore
 ' restoreMF is BeforeAlert 
 [then]
@@ -355,16 +352,6 @@ defer restore  ' restore-order is restore
   postpone >class ' >body postpone literal postpone (is-a-kindOf)
   ; immediate
 
-: to-self ( obj --) to self ;
-
-: :f ( 'name' --) get-current dflt-cur set-current 
-  : postpone self postpone >r postpone to-self ; immediate
-
-: ;f ( wid --) postpone r> postpone to-self postpone ; set-current ; immediate 
-
-: exitf postpone r> postpone to-self postpone exit ; immediate
-
-
 : .class ( obj -- ) \ prints the class name of any object
   >class cna @ count type space ;
 
@@ -384,6 +371,7 @@ defer restore  ' restore-order is restore
  :m :get ( -- x y ) x @ y @ ;m
  :m :put ( x y -- ) self :init ;m
 ;class
+ 
 
 10 20 point p  \ instantiate a point in the dictionary
 
@@ -397,10 +385,13 @@ p .class  \ => point
  :m :init ( x1 y1 x2 y2 -- ) lr :put  ul :put ;m
  :m :get ( -- x1 y1 x2 y2 ) ul :get  lr :get ;m
 ;class
+ 
 
-3 4 15 16 rect r   \ instantiate a rect in the dictionary
+3 4 15 16 rect r   \ instantiate a rect in the dictionary 
 
-r :get . . . . \ => 16 15 4 3  ok
+
+r :get . . . . \ => 16 15 4 3 
+
 
 [then]
 
@@ -410,29 +401,22 @@ r :get . . . . \ => 16 15 4 3  ok
 
 [defined] VFXForth [if]
 
-previous \ get rid of message-wid in search order
-         \ this seems to necessary for loading the following
-         \ VFX extensions 
-
 
 \ quotations.fth are not required, but are nice to have
-  include /Users/doughoffman/VfxOsxPro/Examples/quotations.fth
+  include /Users/doughoffman/VfxForthOsx64/Examples/quotations.fth
           
   \ xchar.fth is only required if you want unicode capability in json.f
-  include /Users/doughoffman/VfxOsxPro/Lib/xchar.fth
+  include /Users/doughoffman/VfxForthOsx64/Lib/xchar.fth
 		[undefined] F+ [if]
-  include /Users/doughoffman/VfxOsxPro/Lib/x86/Ndp387.fth [then]
+  include /Users/doughoffman/VfxForthOsx64/Lib/x86/Ndp387.fth [then]
 
 				   [then]
-
-restore \ restore message-wid
 
 [defined] 'SF [if]
   include /Users/doughoffman/SwiftForth/lib/options/fpmath.f
   include /Users/doughoffman/SwiftForth/lib/options/quotations.f
     [then]
 
-restore \ restore message-wid
 
 include /Users/doughoffman/FMS2VT/ptr.f
 include /Users/doughoffman/FMS2VT/utility-words.f
@@ -450,7 +434,7 @@ include /Users/doughoffman/FMS2VT/hash-table-m.f
 include /Users/doughoffman/FMS2VT/btree.f
 
 \ optional testing routines
- include /Users/doughoffman/FMS2V/FMS2Tester.f
+ include /Users/doughoffman/FMS2VT/FMS2Tester.f
 
 [then]
 

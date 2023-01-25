@@ -19,9 +19,9 @@ Tree balancing has been added, in addition to making a tree class.
    cell bytes nkey
    cell bytes info
    
-  :f .left! ( n -- ) left ! ;f
-  :f .right! ( n -- ) right ! ;f
-  :f .key! ( n -- ) nkey ! ;f
+  :m .left! ( n -- ) left ! ;m
+  :m .right! ( n -- ) right ! ;m
+  :m .key! ( n -- ) nkey ! ;m
   :m :info! ( n -- ) info ! ;m
   :m :left ( -- n ) left @ ;m
   :m :right ( -- n ) right @ ;m

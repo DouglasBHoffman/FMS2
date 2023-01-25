@@ -3,7 +3,6 @@
 \ with no restrictions or source identification of any kind.
 \ Feb 8, 2021 Douglas B. Hoffman
 \ dhoffman888@gmail.com
-\ require <super declaration
 
 \ after a :read the file will be sent the :close message \ Dec 2020
 \ :read-line default max length is 500
@@ -11,7 +10,7 @@
 
 [undefined] string [if] .( string.f required ) abort [then]
 
-:class file <super object  ( c-a u -- ) \ file name
+:class file  ( c-a u -- ) \ file name
   cell bytes id
   cell bytes name 
   cell bytes fam  \ file access method
@@ -20,7 +19,7 @@
   cell bytes buffer 
   cell bytes dflt-line-len
 
-:f :!line-len ( n -- ) dflt-line-len ! ;f
+:m :!line-len ( n -- ) dflt-line-len ! ;m
 
 fmscheck? [if]
 :m :d
@@ -43,14 +42,14 @@ fmscheck? [if]
             else -1 abort" file not open"
             then ;m
             
-:f :fam ( fam -- ) fam ! ;f
+:m :fam ( fam -- ) fam ! ;m
 
-:f :open 
-   open? c@ if exitf then
+:m :open 
+   open? c@ if exit then
    name @ :@ fam @ OPEN-FILE throw
    id !
    true open? c!
-   ;f
+   ;m
 
 : ?open open? c@ 0= if self :open then ;
 
@@ -61,50 +60,50 @@ fmscheck? [if]
    name @ <free  one-line @ <free buffer @ <free
    ;m
 
-:f :create ( -- )
+:m :create ( -- )
    name @ :@
    fam @ CREATE-FILE throw
    id !
    true open? c!
-   ;f
+   ;m
 
-:f :flush
-   id @ FLUSH-FILE drop ;f
+:m :flush
+   id @ FLUSH-FILE drop ;m
 
-:f :close 
-   open? c@ 0= if exitf then
+:m :close 
+   open? c@ 0= if exit then
    id @ CLOSE-FILE throw
    0 open? c!
-   ;f
+   ;m
 
-:f :read ( -- str-obj )
+:m :read ( -- str-obj )
    ?open
    id @ FILE-SIZE ABORT" :read FILE-SIZE failed"
    ( ud ) d>s buffer @ :resize 
    buffer @ dup :@ ( addr len ) id @ READ-FILE throw drop
    self :close
-   ;f
+   ;m
 
 \ added :uneach to fix bug  12-27-2021 dbh
-:f :read-line ( -- str-obj true | false )
+:m :read-line ( -- str-obj true | false )
    ?open
    dflt-line-len @
    one-line @ :resize one-line @ :@ ( addr len )
    id @ READ-LINE throw
    if one-line @ :resize
       one-line @ dup :reset dup :uneach  true
-   then ;f
+   then ;m
 
 
-:f :write-line ( addr len -- ) 
+:m :write-line ( addr len -- ) 
    ?open 
    ( addr len ) id @ WRITE-LINE throw
-;f
+;m
 
-:f :!pos ( n -- ) 
+:m :!pos ( n -- ) 
    ?open
    s>d id @ REPOSITION-FILE ABORT" :!pos REPOSITION-FILE failed"
-   ;f
+   ;m
 
    \ added :each and :uneach 12-27-2021 dbh
 :m :each ( -- str-obj t | f )
@@ -114,10 +113,10 @@ fmscheck? [if]
     0 self :!pos ;m
 
 
-:f :@pos ( -- n )
+:m :@pos ( -- n )
    ?open
    id @ FILE-POSITION ABORT" :@pos FILE-POSITION failed"
-   d>s ;f
+   d>s ;m
 
 :m :write ( addr len -- )
    ?open
