@@ -32,8 +32,7 @@ decimal
 
 true constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
 
-0 value dflt-cur
-get-current to dflt-cur
+get-current value dflt-cur
 
 create order-list 6 cells allot
 : save-order get-order dup 1+ 0 do order-list i cells + ! loop ;
