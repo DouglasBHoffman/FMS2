@@ -1,7 +1,7 @@
 \ Value Flavored Objects 
 
 \ include /Users/doughoffman/ValueFlavoredObjects.fth
-\ Last Revision:  1 Aug 2022  09:27:49  dbh
+\ Last Revision:  26 Feb 2023
 
 0 [IF]
  
@@ -149,12 +149,7 @@ create meta classsize here over allot swap erase
   count hash align ^class ifa link , dup , 
   ^class dfa @ ,  dfa @ ^class dfa +! ; 
 
-: pre-scan ( -- in adr len) >in @ bl word count ;
-: post-scan ( in adr1 cnt adr2 -- ) place >in ! ;
-
-create lastParsedName 32 allot
-
-: (obj)  ( "name" -- )  pre-scan lastParsedName post-scan   create  does> cell+ ; 
+: (obj)  ( "name" -- )  create  does> cell+ ; 
 
 : build   ( ^class "name"-- ) 
   ^class
@@ -177,6 +172,9 @@ create lastParsedName 32 allot
   + swap  \ cnt+addr addr
   ?do i c@ >lower i c!
   loop ;
+  
+: pre-scan ( -- in adr len) >in @ bl word count ;
+: post-scan ( in adr1 cnt adr2 -- ) place >in ! ;
 
 : do-scan pre-scan pad post-scan pad count to-lower ;
 
@@ -356,7 +354,7 @@ get: p . . \ => 20 10
 
 \ note that the init: message is automatically sent ONLY to the
 \ owning object (rect object in this case). For the instance variable
-\ objects UL and LR init: must be explicitly sent.
+\ objects UL and LR, init: must be explicitly sent.
 :class rect
  point ul
  point lr
