@@ -54,13 +54,10 @@ IS NOW:
       because there is no header info. stored before each instance
       variable storage location.
 
-8) If a new class is being defined, the "<super object" declaration
-   is not needed when the superclass is class object.
-
-9) All objects respond to the " .class " word which simply prints the
+8) All objects respond to the " .class " word which simply prints the
    name of the object's class.  Useful when debugging.
 
-10) The " is-a " and " is-a-kind-of " utility words are provided.
+9) The " is-a " and " is-a-kind-of " utility words are provided.
 
 [THEN] 
 
@@ -73,7 +70,7 @@ IS NOW:
      over >r rot over 1+ r> move c! ; 
 [then]
 
-
+here
 
 : link ( addr -- )   here  over @ ,  swap ! ; 
 
@@ -157,35 +154,15 @@ create meta classsize here over allot swap erase
   else
      (obj) \ create a named object in the dictionary
      dup >r ,
-     here \ to newobject
+     here \ will be addr of newobject
      r> dfa @ allot 
      ( here ) classinit \ send init: message
   then ; 
 
-: >lower ( C -- c )
-    dup [char] A [ char Z 1+ ] literal within if
-        32 or
-    then ;
-
-: to-lower ( adr len -- ) \ convert entire string to lowercase in-place
-  over \ addr cnt addr
-  + swap  \ cnt+addr addr
-  ?do i c@ >lower i c!
-  loop ;
-  
-: pre-scan ( -- in adr len) >in @ bl word count ;
-: post-scan ( in adr1 cnt adr2 -- ) place >in ! ;
-
-: do-scan pre-scan pad post-scan pad count to-lower ;
-
-: scanForSuper ( addr --- )
-  do-scan pad count s" <super" compare  \ addr $ptr flag
-  if s" <super object" evaluate then ;  
-
 : :class ( "name" -- addr) \ name of the new class being defined
     \ addr is passed to <super where the class name is stored at cfa
    >in @ bl word count ( n c-adr len ) here over 1+ allot dup >r place >in !  
-   create 0 to ^class r> scanForSuper does> build ;
+   create 0 to ^class r> does> build ;
 
 : icls! ( n ivar -- ) 2 cells + ! ; 
 
@@ -282,6 +259,9 @@ getselect init: to (classinit:)
 : bytes  ( n -- ) 
    ['] object >body <var  ^class dfa +! ;
 
+cr here swap - . .( bytes used)  \ 6670 VFX 64-bit  4069 SF 
+
+0 [if]  \ optional mechanism to allocate objects
 : allocobj  ( size class -- obj )  \ allocate object and store in newobject
 	over cell+		\ allow for class ptr
 	allocate throw	\ ( size class addr -- )
@@ -302,7 +282,9 @@ getselect init: to (classinit:)
 : <free  ( ^obj -- )	\ free heap object
 	dup free: **	\ send free: message to object
 	cell - free throw ;	\ deallocate it
+[then]
 
+0 [if]  \ optional introspective words
 : is-a ( obj "classname" -- flag ) 
   state @
   if
@@ -329,10 +311,10 @@ getselect init: to (classinit:)
   then
   ; immediate
 
-
+[then]
 
 \ generic container class for convenience
-:class var
+:class var <super object
  cell bytes data
  :m get: ( -- n ) addr: data @ ;m
  :m put: ( n -- ) addr: data ! ;m
@@ -340,7 +322,7 @@ getselect init: to (classinit:)
 
 0 [if]
 
-:class point
+:class point <super object
  var x
  var y
 :m init: ( x y -- ) put: y  put: x ;m
@@ -355,7 +337,7 @@ get: p . . \ => 20 10
 \ note that the init: message is automatically sent ONLY to the
 \ owning object (rect object in this case). For the instance variable
 \ objects UL and LR, init: must be explicitly sent.
-:class rect
+:class rect <super object
  point ul
  point lr
 :m init: ( x1 y1 x2 y2 -- ) init: lr  init: ul ;m
@@ -369,6 +351,22 @@ r ? \ => 3  ok
 r cell+ ? \ => 4  ok
 r 2 cells + ? \ => 15  ok
 r 3 cells + ? \ => 16  ok
+
+
+r value r'
+r' get: rect . . . .  \ 16 15 4 3  ok
+
+: go ( obj -- ) get: ** ;
+r go  \ ok-4 
+. . . . \ 16 15 4 3  ok
+
+: test ( obj -- ) get: ** ;
+
+r test . . . .  \ 16 15 4 3  ok
+
+p test  \ ok-2 
+. . \  20 10  ok
+
 
 
 
