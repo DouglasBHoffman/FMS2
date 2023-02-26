@@ -70,8 +70,6 @@ IS NOW:
      over >r rot over 1+ r> move c! ; 
 [then]
 
-here
-
 : link ( addr -- )   here  over @ ,  swap ! ; 
 
 0 value ^class		\ pointer to class being defined
@@ -259,7 +257,7 @@ getselect init: to (classinit:)
 : bytes  ( n -- ) 
    ['] object >body <var  ^class dfa +! ;
 
-cr here swap - . .( bytes used)  \ 6670 VFX 64-bit  4069 SF 
+\ cr here swap - . .( bytes used)  \ 6670 VFX 64-bit  4069 SF 
 
 0 [if]  \ optional mechanism to allocate objects
 : allocobj  ( size class -- obj )  \ allocate object and store in newobject
