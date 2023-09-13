@@ -1,4 +1,6 @@
-Update January 25, 2023. Eliminated :f ... ;f definitions due to possible problems in certain situations.
+September 13, 2023. Updated the Documentation somewhat so that explanations are clearer.
+
+January 25, 2023. Eliminated :f ... ;f definitions due to possible problems in certain situations.
   Eliminated message-wid wordlist and added 254 c@ tag to identify messages. Overall simplification.
 
 FMS2 is an object programming extension to ANS Forth. It is class based, single inheritance, uses Duck Typing, and explicit references to self.
