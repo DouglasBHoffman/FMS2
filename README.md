@@ -1,3 +1,9 @@
+December 30, 2024
+Changed wordlist save-order and restore-order scheme to be compatible
+with classes compiled in vocabularies. Ideas/code from Ruvim.
+Also assured that all message names are created in the same
+root wordlist as FMS.
+
 September 13, 2023. Updated the Documentation somewhat so that explanations are clearer.
 
 January 25, 2023. Eliminated :f ... ;f definitions due to possible problems in certain situations.
