@@ -7,7 +7,14 @@
 \ tested on 32-bit: VFX, SwiftForth, Gforth
 \ tested on 64-bit: VFX
 
-\ Last Revision: 25 Jan 2023  dbh
+\ Last Revision: 30 Dec 2024  dbh
+\ Changed wordlist save-order and restore-order scheme to be compatible
+\ with classes compiled in vocabularies. Ideas from Ruvim.
+\ Also assured that all message names are created in the same
+\ root wordlist as FMS.
+
+
+\ Last Revision: 5 Nov 2022  dbh
 \ eliminated :f ... ;f definitions due to possible problems in certain situations
 \ eliminated message-wid wordlist and added 254 c@ tag to identify messages
 
@@ -32,16 +39,23 @@ decimal
 
 true constant fmsCheck? \ use false *only* after all classes and their use are fully debugged
 
-get-current value dflt-cur
+0 value dflt-cur
+get-current value message-dflt-cur  \ new 12-30-2024
 
-create order-list 6 cells allot
-: save-order get-order dup 1+ 0 do order-list i cells + ! loop ;
-save-order
+\ *** new code 12-28-2024
+0 value order-depth-old
+
+: save-order
+  get-order dup to order-depth-old ndrop
+  get-current to dflt-cur ;
+
+create order-list 16 cells allot  \ was 6
 
 0 value ^class
 
 : restore-order
-  0 order-list @ do order-list i cells + @ -1 +loop set-order
+  get-order dup order-depth-old u< abort" wrong search order"
+  order-depth-old - ndrop order-depth-old set-order
   dflt-cur set-current 0 to ^class ;
 
 0 value self
@@ -199,7 +213,9 @@ fmsCheck? [if]
 
 0 value table-offset
 
-: make-selector ( 'name' --) get-current dflt-cur set-current
+\ changed 12-30-2024 dbh
+\ : make-selector ( 'name' --) get-current dflt-cur set-current
+: make-selector ( 'name' --) get-current message-dflt-cur set-current
   create table-offset cell+ dup to table-offset , 254 c, set-current  
   does> @ over @ >xt ex-meth ;
 
@@ -279,6 +295,7 @@ fmsCheck? [if]
 : :class ( "name" -- addr) \ name of the new class being defined
     \ addr is passed to <super where the class name is stored at cfa
   ^class abort" :CLASS used before prior class is compiled"
+  save-order  \ *** 12-28-2024
   >in @ bl word count ( n c-adr len ) here over 1+ allot dup >r place >in !  
    create immediate r>
    scanForSuper 
@@ -396,16 +413,16 @@ r :get . . . . \ => 16 15 4 3
 
 
 \ some optional class libraries
-0 [if]
+-1 [if]
 
 [defined] VFXForth [if]
 
 
 \ quotations.fth are not required, but are nice to have
-  include /Users/doughoffman/VfxForthOsx64/Examples/quotations.fth
+\  include /Users/doughoffman/VfxForthOsx64/Examples/quotations.fth
           
   \ xchar.fth is only required if you want unicode capability in json.f
-  include /Users/doughoffman/VfxForthOsx64/Lib/xchar.fth
+\  include /Users/doughoffman/VfxForthOsx64/Lib/xchar.fth
 		[undefined] F+ [if]
   include /Users/doughoffman/VfxForthOsx64/Lib/x86/Ndp387.fth [then]
 
@@ -433,7 +450,7 @@ include /Users/doughoffman/FMS2VT/hash-table-m.f
 include /Users/doughoffman/FMS2VT/btree.f
 
 \ optional testing routines
- include /Users/doughoffman/FMS2VT/FMS2Tester.f
+include /Users/doughoffman/FMS2VT/FMS2Tester.f
 
 [then]
 
@@ -473,4 +490,3 @@ include /Users/doughoffman/FMS2VT/btree.f
 
  
 [then]
-
