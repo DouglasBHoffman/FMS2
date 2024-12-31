@@ -30,6 +30,8 @@
 [undefined] +order [if]
  : +order ( wid -- ) >r get-order r> swap 1+ set-order ;
 [then]
+[undefined] ndrop [if] : ndrop ( .. n -- .. ) \ drop n items from stack
+                         1+ cells sp@ + sp! ; [then]
 
 decimal
 
@@ -413,7 +415,7 @@ r :get . . . . \ => 16 15 4 3
 
 
 \ some optional class libraries
--1 [if]
+0 [if]
 
 [defined] VFXForth [if]
 
